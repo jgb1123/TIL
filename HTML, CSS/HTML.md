@@ -71,3 +71,10 @@ HTML5에 도입된 Semantic Element는 개발자와 브라우저에게 **의미�
 * 기존에는 `<div>` 태그 안에 id나 class속성으로 개발자별로 각자 이름을 지정했고, 파일을 분석할 때 정확하게 컨텐츠를 식별하기 힘들었다.
 * `<table>`, `<article>`, `<section>` 등의 Semantic element는 대략적으로 안에 들어갈 내용의 의미를 유추할 수 있게 된다.
 * 정해진 Semantic element를 사용하면서 파일을 분석할때 컨텐츠를 좀더 정확하게 식별할 수 있다.
+
+___
+참고
+
+https://kwiskey.tistory.com/7
+
+codestates 교육
