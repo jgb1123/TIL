@@ -1,6 +1,6 @@
 # 예외
 
-## 프로그램 오류
+## 1. 프로그램 오류
 1. **컴파일 에러**
 * 컴파일 할 때 발생하는 에러
 * 구문체크, 번역, 최적화, 생략된 코드 추가 등
@@ -13,11 +13,12 @@
 3. **논리적 에러**
 * 작성 의도와 다르게 동작하는 에러
 
-## 예외처리
+## 2. 예외처리
 * 프로그램 실행 시 발생할 수 있는 예외의 발생에 대비한 코드를 작성하는 것이다.
 * 프로그램의 비정상 종료를 막고 정상적인 실행상태를 유지한다.
+* try-catch문을 사용하거나, 예외를 선언하여 예외를 처리할 수 있다.
 
-## Exception, RuntimeException
+## 3. Exception, RuntimeException
 1. Exception 클래스와 그 하위클래스들
 * 사용자의 실수와 같은 외적인 요인에 의해 발생하는 예외
   * IOException (입출력 예외)
@@ -26,11 +27,11 @@
 2. RuntimeException 클래스와 그 하위클래스들
 * 프로그래머 실수로 발생하는 예외 
   * ArithmeticException (산술계산 예외)
-  * ClassCastException (형변환시)
+  * ClassCastException (형변환 시 예외)
   * NullPointerException (어떤 객체가 null일 때)
   * IndexOutOfBoundsExceoption(배열범위 벗어남)
 * Unchecked 예외이다.(컴파일러가 예외 처리 여부를 체크하지 않는다. 예외처리가 선택적)
-## try-catch문
+## 4. try-catch문
 ```java
 try{
     //예외가 발생할 가능성이 있는 문장들
@@ -69,7 +70,7 @@ try{
     // 예외발생과 관계없이 수행 되는 코드
 }
 ```
-## printStackTrace(), getMessage()
+## 5. printStackTrace(), getMessage()
 * 예외가 발생되면 예외정보가 들어있는 객체가 생성되고, 그 정보를 메서드들을 통해 가져올 수 있다.
 ### printStackTrace()
 * 예외 발생 당시의 호출스택에 있었던 메서드의 정보와 예외 메서드를 화면에 출력한다.
@@ -87,7 +88,7 @@ try{
     e.printStackTrace();
 }
 ```
-## 예외 선언
+## 6. 예외 선언
 * 예외를 처리하는 방법은 try-catch문을 사용하는 방법과 예외를 선언하는 방법이 있다.
 * 그중 예외를 선언하는 방법은 메서드가 호출시 발생가능한 예외를 호출하는 쪽에 알리는 것이다.(떠넘기는 것이다.)
 ```java
@@ -99,7 +100,7 @@ void 메서드명() throws Exception1, Exception2{ //최고 조상인 Exception�
 * 예외를 처리한 후에 다시 예외를 발생시키는 것이다. 처리 후 throw로 다시 던진다.
 * 호출한 메서드와 호출된 메서드 **양쪽 모두에서 예외처리** 하는 것이다.
 
-## 사용자 정의 예외 만들기
+## 7. 사용자 정의 예외 만들기
 * 직접 예외 클래스를 정의할 수 있다.
 * 조상은 exception과 RuntimeException중에서 선택한다.
 * String 매개변수가 있는 생성자를 넣어야 한다.
@@ -113,7 +114,7 @@ class MyException extends Exception{
 ### 연결된 예외
 * 한 예외가 다른 예외를 발생시킬 수 있다.
 * 예외 A가 예외 B를 발생시키면, A는 B의 원인 예외이다.
-#### Throwable InitCause()
+#### Throwable InitCause(Throwable cause)
 * 지정한 예외를 원인 예외로 등록한다
 
 #### Throwable getCause()
@@ -122,3 +123,9 @@ class MyException extends Exception{
 #### 예외 연결 이유
 * 여러 예외를 하나로 묶어서 다루기 위해 사용한다.
 * checked 예외를 unchecked 예외로 변경할 때 사용한다.
+
+
+___
+참고
+
+남궁성의 정석코딩 자바의 정석 기초편 https://www.youtube.com/channel/UC1IsspG2U_SYK8tZoRsyvfg
