@@ -49,33 +49,55 @@
 * Iterator는 끝까지 가고 나면 다시 못돌아온다.(1회용이다)
 * Map에는 Iterator가 없기 때문에 keySet(), entrySet(), values()들로 호출한 후 Iterator를 사용하면 된다.
 
+## 4. Arrays
+* 배열을 다루기 편리한 메서드들을 제공한다.
+* `toString()`배열의 출력
+* `copyOf()`, `copyOfRange()`배열의 복사
+* `fill()`, `setAll()`배열 채우기
+* `sort()`배열의 정렬
+* `binarySearch()`배열의 검색 (정렬 후 이분검색)
+* `deepToString()`다차원 배열의 출력 
+* `deepEquals()` 다차원 배열의 비교
+* `asList` 배열을 List로 변환 (변환된 List는 읽기전용) 
+* 
 
-## 4. List
+## 5. Comparator, Comparable
+* 객체 정렬에 필요한 메서드를 정의한 인터페이스
+* Comparator 기본 정렬기준 외에 다른 기준으로 정렬하고자 할때 사용 `compare(Object o1, Object o2)`
+* Comparable 기본 정렬기준을 구현하는데 사용 `comparTo(Object o)`
+* `compare(Object o1, Object o2)`o1, o2 두 객체를 비교
+* `Comparable(Object o)` 주어진 객체 o를 자신(this)과 비교
+* 같으면 0, 왼쪽이 크면 양수, 왼쪽이 작으면 음수
+* sort(Object[] a)로 사용하려면 객체 안에 정렬기준이 있어야 한다. 없으면 sort(Object[] a, Comparator c)와 같이 사용해야 한다.
+* 정렬 기준을 반대로 하려면 return에 -1을 곱해준다.
+
+
+## 6. List
 ### 1) ArrayList
 * 기존의 Vector를 개선한 것으로 구현원리와 기능적으로 동일하다.
 * List인터페이스를 구현하므로 저장순서가 유지되고 중복을 허용한다.
 * 데이터의 저장공간으로 배열을 사용한다.
 #### ArrayList 메서드
 * `ArrayList()`  기본 생성자
-* `ArrayList(Collection c)`  컬렉션에 저장되어있는 객체들을 ArrayList로 만든다.
+* `ArrayList(Collection c)`  컬렉션에 저장되어 있는 객체들을 ArrayList로 만든다.
 * `ArrayList(int initialCapacity)` 배열의 길이를 지정한다.
 * `add(Object o)` 객체를 리스트에 추가한다.
 * `add(int index, Object element)`  객체를 저장 시 저장위치를 정할 수 있다.
-* `addAll(Collection)`  컬렉션에 저장되어있는 객체들을 리스트에 추가한다.
+* `addAll(Collection)`  컬렉션에 저장되어 있는 객체들을 리스트에 추가한다.
 * `addAll(int index, Collection c)`  컬렉션을 저장시 저장위치를 정할 수 있다.
 * `remove(Object o)`  객체를 리스트에서 삭제한다
-* `remove(int index)`  특정 위치에있는 객체를 삭제한다.
-* `removeAll(Collection c)`  컬렉션에있는 객체들을 모두 삭제한다.
-* `clear()`  모든객체를 삭제한다.
-* `indexOf(Object o)`  객체가 몇번 째 저장되어있는지 찾아준다. 못찾으면 -1을 반환한다.
+* `remove(int index)`  특정 위치에 있는 객체를 삭제한다.
+* `removeAll(Collection c)`  컬렉션에 있는 객체들을 모두 삭제한다.
+* `clear()`  모든 객체를 삭제한다.
+* `indexOf(Object o)`  객체가 몇번 째 저장되어 있는지 찾아준다. 못찾으면 -1을 반환한다.
 * `lastIndexOf(Object o)`  indexOf와 달리 뒤에서 부터 찾는다.
-* `contains(Object o)`  객체가 존재하는지를 여부를 boolean으로 반환한다.
+* `contains(Object o)`  이 객체를 포함하고 있는지 여부를 boolean으로 반환한다.
 * `get(int index)`  그 위치에 있는 객체를 읽는다.
-* `set(int index, Object element)`  그 위치에있는 객체를 변경한다
+* `set(int index, Object element)`  그 위치에 있는 객체를 변경한다
 * `subList(int fromIndex, int toIndex)`  from~to까지 있는 인덱스를 뽑아 새로운 리스트로 만든다 (from부터 to 이전까지)
 * `toArray()`  ArrayList의 객체배열을 반환한다.
 * `isEmpty()`  ArrayList가 비어있는지 여부를 boolean으로 반환한다
-* `trimToSize()`  빈공간을 제거한다.
+* `trimToSize()`  빈 공간을 제거한다.
 * `size()`  ArrayList에 저장된 객체의 갯수를 반환한다.
 
 #### ArrayList에 저장된 객체의 삭제 과정
@@ -144,7 +166,63 @@
 ##### Queue 활용
 * 최근사용문서, 인쇄작업 대기목록, 버퍼(buffer)
 
+## 7. Set
+### HashSet
+* 순서가 없고 중복이 안된다.
+* Set 인터페이스를 구현한 대표적인 컬렉션 클래스이다.
+* 순서가 없기때문에 정렬이 되지 않고, 정렬을 하려면 list로 변환 후 정렬을 해야한다.
+* 순서를 유지하려면 LinkedHashSet 클래스를 사용하면 된다.
 
+#### HashSet 메서드
+* `HashSet()` 기본 생성자
+* `HashSet(Collection c)` 컬렉션에 저장되어 있는 객체들을 HashSet으로 만든다.
+* `HashSet(int initialCapacity)` 초기 용량을 정해준다
+* `HashSet(int initialCpapacity, float loadFactor)`loadFactor로 언제 용량을 늘려줄지 정한다. 
+* `add(Object o)` 객체를 추가한다
+* `addAll(Collection c)` 컬렉션에 저장되어있는 객체들을 추가한다. (합집합을 구할 때 사용한다)
+* `remove(Object o)` 객체를 삭제한다
+* `removeAll(Collection c)` 컬렉션에 있는 객체들을 모두 삭제한다. (차집합을 구할 때 사용한다)
+* `retainAll(Collection c)` 컬렉션에 있는거만 남기고 삭제한다. (교집합을 구할 때 사용한다)
+* `clear()` 모든 객체를 삭제한다
+* `contains(Object o)` 이 객체를 포함하고 있는지 여부를 boolean으로 반환한다.
+* `containsAll(Collection c)` 컬렉션에있는 객체들을 모두 포함하고 있는지 여부를 boolean으로 반환한다.
+* `iterator()` 컬렉션에있는 요소를 읽어준다.
+* `isEmpty()` 비어있는지 여부를 boolean으로 반환한다.
+* `size()` 저장된 객체의 개수를 확인한다.
+* `toArray()` 저장되어있는 객체들을 객체배열로 반환한다.
+
+#### Hashset 활용
+* HashSet은 객체를 저장하기전에 기존에 같은 객체가 있는지 확인한다.
+* 같은 객체가 없으면 저장하고 있으면 저장하지 않는다.
+* `add(Object o)`는 저장할 객체의 equlas()와 hashCode()를 호출한다.
+* equals()와 hashCode()를 오버라이딩 하지 않으면 비교작업이 제대로 작동하지 않는다.
+```java
+public int hashCode(){
+    return Objects.hash(name, age);
+} 
+public boolean equals(Object obj){
+    if(!(obj instanceof Person)) return false;
+    Person p = (Person)obj; //obg에는 name과 age라는 멤버가 없기 때문에 형변환을 해준다.
+    return this.name.equals(p.name) && this.age==p.age;
+}
+```
+* 위 예시와 같이 equlas()와 hashCod()를 오버라이딩 한다.
+
+### TreeSet
+* 범위 탐색과 정렬에 유리한 컬렉션 클래스이다.
+* 이진 탐색 트리(binary search tree)로 구현되어있다.
+* 이진트리는 모든 노드가 최대 2개의 하위 노드를 갖는다.
+* 각 노드들은 나무형태로 연결되어있다. (LinkedList의 변형)
+```java
+class TreeNode{
+    TreeNode left;  //왼쪽 자식노드
+    Object element; //저장할 객체
+    Treenode right; //오른쪽 자식노드
+}
+```
+* 부모보다 작은 값은 왼쪽, 큰 값은 오른쪽에 저장한다. (이진 탐색 트리)
+* 데이터가 많아질 수록 추가, 삭제에 시간이 더 오래 걸린다. (비교 횟수가 증가하기 때문)
+* HashSet보다 데이터 추가, 삭제에 시간이 더 오래 걸린다.
 
 
 ---
