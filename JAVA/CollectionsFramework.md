@@ -66,10 +66,10 @@
 * Comparator 기본 정렬기준 외에 다른 기준으로 정렬하고자 할때 사용 `compare(Object o1, Object o2)`
 * Comparable 기본 정렬기준을 구현하는데 사용 `comparTo(Object o)`
 * `compare(Object o1, Object o2)`o1, o2 두 객체를 비교
-* `Comparable(Object o)` 주어진 객체 o를 자신(this)과 비교
-* 같으면 0, 왼쪽이 크면 양수, 왼쪽이 작으면 음수
-* sort(Object[] a)로 사용하려면 객체 안에 정렬기준이 있어야 한다. 없으면 sort(Object[] a, Comparator c)와 같이 사용해야 한다.
-* 정렬 기준을 반대로 하려면 return에 -1을 곱해준다.
+* `CompareTo(Object o)` 주어진 객체 o를 자신(this)과 비교
+* 같으면 0, 왼쪽이 크면 양수, 오른쪽이 크면 음수
+* `sort(Object[] a)`로 사용하려면 객체 안에 정렬기준이 있어야 한다. 만약 정렬 기준이 없으면 `sort(Object[] a, Comparator c)`와 같이 사용해야 한다.
+* 정렬 기준을 반대로 하려면 정렬기준에 -1을 곱해준다.
 
 
 ## 6. List
@@ -167,7 +167,7 @@
 * 최근사용문서, 인쇄작업 대기목록, 버퍼(buffer)
 
 ## 7. Set
-### HashSet
+### 1) HashSet
 * 순서가 없고 중복이 안된다.
 * Set 인터페이스를 구현한 대표적인 컬렉션 클래스이다.
 * 순서가 없기때문에 정렬이 되지 않고, 정렬을 하려면 list로 변환 후 정렬을 해야한다.
@@ -208,7 +208,7 @@ public boolean equals(Object obj){
 ```
 * 위 예시와 같이 equlas()와 hashCod()를 오버라이딩 한다.
 
-### TreeSet
+### 2) TreeSet
 * 범위 탐색과 정렬에 유리한 컬렉션 클래스이다.
 * 이진 탐색 트리(binary search tree)로 구현되어있다.
 * 이진트리는 모든 노드가 최대 2개의 하위 노드를 갖는다.
@@ -223,6 +223,99 @@ class TreeNode{
 * 부모보다 작은 값은 왼쪽, 큰 값은 오른쪽에 저장한다. (이진 탐색 트리)
 * 데이터가 많아질 수록 추가, 삭제에 시간이 더 오래 걸린다. (비교 횟수가 증가하기 때문)
 * HashSet보다 데이터 추가, 삭제에 시간이 더 오래 걸린다.
+
+#### TreeSet 메서드
+* `add()``size()``remove()``isEmpty()``iterator()` 기존 collection들과 동일
+* `TreeSet()` 기본 생성자
+* `TreeSet(Collection c)` 컬렉션을 저장하는 TreeSet을 생성한다.
+* `TreeSet(Comparator comp)` 주어진 정렬기준으로 정렬하는 TreeSet을 생성한다. 
+  * **원래 비교기준이 필수**로 있어야 하고, 없으면 저장하는 객체의 comparable을 이용한다.
+* `first()`정렬된 순서에서 첫 번째 객체를 반환한다.
+* `last()`정렬된 순서에서 마지막 객체를 반환한다.
+* `ceiling(Object o)` 객체와 같거나, 큰 값을 가진 가까운 객체를 반환한다.(이상중 가까운)
+* `floor(Object o)` 객체와 같거나, 작은 값을 가진 가까운 객체를 반환한다. (이하중 가까운)
+* `higher(Object o)` 객체보다 큰 값을 가진 가까운 객체를 반환한다. (초과중 가까운)
+* `lower(Object o )`객체보다 작은 값을 가진 가까운 객체를 반환한다. (미만중 가까운)
+* `subSet(Object fromElement, Object toElement)` from이상 to미만의 결과를 반환한다. 
+* `HeadSet(Object toElement)` 객체보다 작은 값의 객체들을 반환한다.(미만 모두)
+* `tailSet(Object fromElement)`객체보다 큰 값의 객체들을 반환한다.(초과 모두)
+
+#### tree traversal(트리 순회)
+* 이진트르의 모든 노드를 한번씩 읽는 것을 트리 순회라고 한다.
+* 전위, 중위, 후위, 레벨 순회 등이 있으며, **중위 순회하면 오름차순으로 정렬된다.**
+* 이로 인해 TreeSet의 특징인 정렬 및 범위검색에 유리해진다.
+
+전위 순회(Preorder) : Root -> Left -> Right
+중위 순회(Inorder) : Left -> Root -> Right
+후위 순회(Postorder) : Left -> Right -> Root 
+레벨 순회(level order) : 맨 위층부터 순서대로
+
+## 8. Map
+* Map 인터페이스를 구현한다.
+* 데이터를 키와 값의 쌍으로 저장한다
+* 순서가 없고, 키는 중복이 안되고 값은 중복 된다.
+
+### 1) HashMap
+* Map인터페이스를 구현한 대표적인 컬렉션 클래스이다.
+* 순서를 유지하려면 LinkedHashMap 클래스를 사용하면 된다.
+* hashing기법으로 데이터를 저장하며, 데이터가 많아도 검색이 빠르다.
+> **hashing**은 hash function을 이용해서 hash table에 데이터를 저장하고 읽어오는 것이다.
+> 
+> **hash table**은 배열과 linkedList가 조합된 형태이다. 배열의 접근성의 장점과, LinkedList의 변경에 유리하다는 장점을 섞은 것이다.
+#### Hash table에 저장된 데이터를 가져오는 과정
+1. 키로 hash function을 호출해서 hash code를 얻는다.
+2. Hash code에 대응하는 LinkedList를 배열에서 찾는다
+3. LinkedList에서 키와 일치하는 데이터를 찾는다.
+* hash function은 같은 키에 대해 항상 같은 hash code를 반환해야 한다. (다른 키여도 같은 값의 hash code를 반환할 수 있다.)
+
+#### HashMap 메서드
+* `HashMap()` 기본 생성자
+* `HashMap(int initialCapacity)` 초기 용량을 정한다.(hash table의 배열의 용량)
+* `HashMap(int initialCapacity, float loadFactor)` loadFactor로 언제 용량을 늘려줄 지 정한다.
+* `HashMap(Map m)` 다른 맵을 해쉬맵으로 바꾼다.
+* `put(Object key, Object value)` 데이터를 저장한다.
+* `putAll(Map m)` 맵에 있는 데이터들을 저장한다.
+* `remove(Object key)`키를 삭제한다.
+* `replace(Object key, Object value)`기존의 키를 새로운 값으로 저장한다.
+* `replace(Object key, ObjectoldValue, Object newValue)`기존의 키를 새로운 값으로 저장한다.
+* `entrySet()`키와 값을 쌍으로 갖는 Set을 얻는다.
+* `keySet()`키들만 갖는 Set을 얻는다.
+* `values()`값들만 갖는 collection을 얻는다.
+* `get(Object key)` 키에 해당하는 값을 반환한다.
+* `getOrDefault(Object key, Object defaultValue)` 키에 해당하는 값이 없으면 지정한 값(defaultValue)을 가져온다.
+* `containsKey(Object key)` 키가 포함되어 있는지 여부를 boolean값으로 반환한다.
+* `containsValue(Object value)` 값이 포함되어 있는지 여부를 boolean값으로 반환한다.
+* `size()` 저장된 개수를 확인한다.
+* `isEmpty()` 비어있는지 여부를 boolean으로 반환한다.
+* `clear()` 모두 삭제한다.
+* `clone()` 복제한다.
+
+### 2) TreeMap
+* 범위검색과 정렬에 유리한 컬렉션 클래스이다.
+* HashMap보다 데이터 추가, 삭제에 시간이 더 오래 걸린다. 
+* Key, Value로 저장한다는 차이만 빼면 TreeSet과 거의 동일하다.
+
+## 9. Collections 클래스
+* 컬렉션을 위한 메서드들을 제공한다.
+* 컬렉션 채우기, 복사, 정렬, 검색에 사용하는 fill(), copy(), sort(), binarySearch() 메서드들이 있다.
+
+### 컬렉션의 동기화
+* synchronized___(___)
+* Collection, List, Set, Map, SortedSet, SortedMap
+
+### readOnly 컬렉션 만들기
+* unmodifiable___(___)
+* Collection, List, Set, Map, NavigableSet, SortedSet, NavigableMap, SortedMap
+
+### singleton 컬렉션 만들기 (객체 1개만 저장)
+* singleton___(___)
+* List, Set, Map
+
+### 한 종류의 객체만 저장하는 컬렉션 만들기
+* checked___(___, class type)
+* Collection, List, Set, Map, Queue, NavigableSet, SortedSet, NavigableMap, SortedMap
+* JDK1.5부턴 지네릭스를 이용한다.
+
 
 
 ---
