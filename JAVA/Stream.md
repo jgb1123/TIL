@@ -6,9 +6,6 @@
 * Stream을 만들고 나면 똑같은 방식으로 작업을 통일할 수 있다.
 * 데이터 소스 -> 스트림 -> 중간 연산 -> 최종 연산 순으로 진행된다.
 
-* 중간 연산 연산결과가 스트림인 연산. 반복적으로 적용 가능하다.
-* 최종 연산 연산결과가 스트림이 아닌 연산. 단 한번만 적용 가능하다. (스트림의 요소를 소모)
-
 
 ## 스트림의 특징
 * 스트림은 데이터 소스로부터 데이터를 읽기만할 뿐 변경하지 않는다. (원본을 변경하지 않는다.)
@@ -20,9 +17,8 @@
     * 오토박싱&언박싱의 비효율이 제거된다. (Stream<Integer>대신 IntStream사용)
     * 숫자와 관련된 유용한 메서드를 Stream<T>보다 더 많이 제공한다. (sum(), Average() 등)
 
-
-## 스트림 만들기
-### 컬렉션
+## 스트림의 생성
+### 1) 컬렉션
 * collection인터페이스의 `stream()`으로 컬렉션을 스트림으로 변환한다.
 ```java
 List<Integer> list = Arrays.asList(1, 2, 3, 4, 5);
@@ -32,7 +28,7 @@ intStream.forEach(System.out::print);   // 최종연산
 intStream.forEach(System.out::print);   // 에러, Stream은 1회용
 ```
 
-### 배열
+### 2) 배열
 #### 객체 배열로부터 스트림 생성
 * `Stream.of(T... values)` 가변인자들을 변환
 * `Stream.of(T[])` 배열을 변환
@@ -45,21 +41,149 @@ intStream.forEach(System.out::print);   // 에러, Stream은 1회용
 * `Array.stream(int[])`
 * `Array.stream(int[] array, int start, int end)`
 
-### 임의의 수
-#### 난수를 요소로 갖는 스트림 생성하기
+### 3) 임의의 수
+#### 난수를 요소로 갖는 스트림 생성하기 (IntStream, LongStream 등)
 ```java
 IntStream intStream = new Random().ints();  // 무한 스트림
 intStream.limit(5).forEach(System.out::println);    // 5개의 요소만 출력한다.
 
 IntStream intStream = new Random().ints(5); // 유한 스트림 5개만 반환한다. 
 ```
-#### 지정된 범위의 난수를 요소로 갖는 스트림 생성하기
-* `ints(int start, int end)` 무한 스트림
-* `ints(long streamSize, int start, int end)` 유한 스트림
-
-#### 특정 범위의 정수를 요소로 갖는 스트림 생성하기(IntStream, LongStream)
-* `IntStream.range(int start, int end);` start부터 end 이전까지
+#### 지정된 범위의 난수를 요소로 갖는 스트림 생성하기 (IntStream, LongStream 등)
+* `Random().ints(int start, int end)` start부터 end 이전까지의 범위를 갖는 무한 스트림
+* `Random().ints(long streamSize, int start, int end)` 유한 스트림
+### 4) 특정범위의 정수
+#### 특정 범위의 정수를 요소로 갖는 스트림 생성하기 (IntStream, LongStream)
+* `IntStream.range(int start, int end);` start부터 end 이전까지 
 * `IntStream.rangeClosed(int start, int end);` start부터 end까지
+
+### 5) 람다식
+#### 람다식을 소스로 하는 스트림 생성하기
+* `iterate(T seed, UnaryOperator<T> f)` 초기값(seed)에 무한스트림
+* `generate(Supplier<T> s)` 초기값이 없으며 무한스트림이다.
+``` java
+Stream<Integer> evenStream = Stream.iterate(0, n->n+2);
+Stream<Integer> randomStream = Stream.generate(Math::random); 
+```
+### 6) 파일과 빈 스트림
+
+#### 파일을 소스로 하는 스트림 생성하기
+* `Files.list(Path dir)` 파일 또는 디렉토리
+* `Files.lines(Path path)` 파일의 내용을 라인 단위로 읽어서 스트림으로 만든다.
+* `Files.lines(Path path, Charset cs)` 
+* `lines()` BufferedReader(Text파일 읽을때 편리한 클래스)의 메서드이다. 
+
+#### 비어있는 스트림 생성하기
+`Stream.empty()` 빈 스트림을 생성한다.
+
+## 스트림의 연산
+### 중간 연산
+* 연산 결과가 스트림인 연산으로, 반복적으로 적용 가능하다.
+* `distinct()` 중복을 제거한다.
+* `filter(Predicate<T> predicate)` 조건에 안 맞는 요소를 제외시킨다.
+* `skip(long n)` 스트림을 n만큼 건너 뛴다.
+* `limit(long maxSize)` 스트림을 maxSize만큼 잘라낸다.
+* `peek(Consumer<T> action)` 스트림의 요소에 작업을 수행한다. (중간에 작업 결과를 볼 때 자주 사용한다.)
+* `sorted()` 스트림의 요소를 정렬한다.
+* `sorted(Comparator<T> comparator)` 정렬 기준으로 요소를 정렬한다.
+* `map(mapper)`스트림의 요소를 변환한다.
+* `flatMap(mapper)` 스트림의 요소를 변환한다.
+
+#### 1) skip(), limit()
+* `skip(long n)` 스트림을 n만큼 건너 뛴다.
+* `limit(long maxSize)` maxSize 이후의 요소들은 잘라낸다.
+```java
+IntStream intStream = IntStream.rangeClosed(1, 10); // 12345678910
+intStream.skip(3).limit(5).forEach(System.out::print);  // 45678 
+```
+#### 2) filter(), distinct()
+* `distinct()` 중복을 제거한다.
+* `filter(Predicate<T> predicate)` 조건에 안 맞는 요소를 제거한다.
+```java
+IntStream intStream = IntStream.of(1, 2, 2, 3, 3, 3, 4, 5);
+intStream.distinct().forEach(System.out::print);    // 12345
+
+IntStream intStream = IntStream.rangeclosed(1, 10); //12345678910
+intStream.filter(i->i%2==0).forEach(System.out::print); // 246810
+```
+#### 3) sorted()
+* `sorted()` 스트림 요소의 기본 정렬(Comparable)로 정렬한다
+* `sorted(Comparator<T> comparator)` 지정된 Comparator로 정렬한다.
+##### 정렬 기준
+1. Comparator의 comparing()으로 정렬기준 제공한다.
+* `comparing(Function<T, U> keyExtractor)`
+* `comparing(Function<T, U> keyExtractor,  Comparator<U> keyComparator)`
+  * return type이 Comparator이다.
+
+2. 추가 정렬 기준을 제공할 때는 thenComparing()을 이어붙여 사용한다.
+* `thenComparing(Comparator<T> other)`
+* `thenComparing(Function<T, U> keyExtractor)`
+* `thenComparing(Function<T, U> keyExtractor, Comparator<U> keyComp)`
+
+#### 4) map()
+* `map(Function<T,R> mapper)` Stream<T> 에서 Stream<R>로 변환한다.
+```java
+Stream<File> fileStream = Stream.of(new File("Ex1.java"), new File("Ex1"));
+
+Stream<String> filenameStream = fileStream.map(File::getName);
+
+
+```
+#### 5) peek()
+* `peek(Consumer<T> action)` 스트림의 요소를 소비하지 않고 작업을 수행한다.
+* 작업 중간 결과를 확인하는 용도로 사용한다. (디버깅용도)
+`.peek(s->System.out.printf("filename=%s%n, s))`
+
+#### 6) flatMap()
+* 스트림의 스트림을 스트림으로 변환한다.
+* 여러개의 문자열 배열을 하나의 문자열 배열인것 처럼 변환할 때 사용할 수 있다.
+```java
+Stream<String[]> strArrStream = Stream.of(
+        new String[]{"abc", "def", "jkl"},
+        new String[]{"ABC", "GHI", "JKL"}
+);
+Stream<String> strStream = strArrStream.flatMap(Arrays::stream);
+
+strStream.map(String::toLowerCase)
+        .distinct()
+        .sorted()
+        .forEach(System.out::print); // abcdefghijkl 출력
+```
+
+### Optional<T>
+* T타입 객체의 래퍼클래스이다.
+```java
+public final class Optional<T> {
+    private final T value;  // T타입의 참조변수이다.
+        ...                 // 모든 종류의 객체를 저장할 수 있다.(null 포함)
+}
+```
+* Optional을 이용해 null을 간접적으로 다룰 수 있다.
+  * null을 직접 다루는 것은 위험하다. (NullPointerException 발생 위험)
+  * null 체크를 하려면 if문이 필수인데 코드가 지저분해진다.
+
+### 최종 연산
+* 연산 결과가 스트림이 아닌 연산으로, 단 한번만 적용 가능하다. (스트림의 요소를 소모)
+* `forEach(Consumer<? super T> action)` 각 요소에 지정된 작업을 수행한다
+* `forEachOrdered(Consumer<? super T> action)` 순서를 유지하여 작업을 수행한다. (병렬 스트림 에서)
+* `count()` 스트림의 요소의 개수를 반환한다.
+* `max(Comparator<? super T> comparator)` 기준에 따라 스트림의 최대값을 반환한다.
+* `min(Comparator<? super T> comparator)` 기준에 따라 스트림의 최소값을 반환한다.
+* `findAny()` 스트림의 아무 요소 하나를 반환한다. 
+  * 병렬 스트림에서 filter와 같이 사용하여 조건에 맞는 요소를 반환한다.
+* `findFirst()` 스트림의 첫 번째 요소 하나를 반환한다 (직렬 스트림에서)
+* `allMatch(Predicate<T> p)` 조건식을 모두 만족시키는지 확인한다
+* `anyMatch(Predicate<T> p)` 조건식을 하나라도 만족하는지 확인한다.
+* `noneMatch(Predicate<T> p)` 조건식을 모두 만족하지 않는지 확인한다.
+* `toArray()` 스트림의 모든 요소를 배열로 반환한다.
+* `toArray(IntFunction<A[]> generator)` 스트림의 모든 요소를 특정 타입의 배열로 반환한다.
+* `reduce(accumulator)` 스트림의 요소를 하나씩 줄여가면서 계산한다.
+* `collect(collector)` 스트림의 요소를 수집한다.
+  * 주로 요소를 그룹화 하거나 분할한 결과를 컬렉션에 담아 반환하는데 사용한다.
+
+
+
+
 
 ___
 참고
