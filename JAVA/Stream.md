@@ -79,15 +79,6 @@ Stream<Integer> randomStream = Stream.generate(Math::random);
 ## 스트림의 연산
 ### 중간 연산
 * 연산 결과가 스트림인 연산으로, 반복적으로 적용 가능하다.
-* `distinct()` 중복을 제거한다.
-* `filter(Predicate<T> predicate)` 조건에 안 맞는 요소를 제외시킨다.
-* `skip(long n)` 스트림을 n만큼 건너 뛴다.
-* `limit(long maxSize)` 스트림을 maxSize만큼 잘라낸다.
-* `peek(Consumer<T> action)` 스트림의 요소에 작업을 수행한다. (중간에 작업 결과를 볼 때 자주 사용한다.)
-* `sorted()` 스트림의 요소를 정렬한다.
-* `sorted(Comparator<T> comparator)` 정렬 기준으로 요소를 정렬한다.
-* `map(mapper)`스트림의 요소를 변환한다.
-* `flatMap(mapper)` 스트림의 요소를 변환한다.
 
 #### 1) skip(), limit()
 * `skip(long n)` 스트림을 n만큼 건너 뛴다.
@@ -152,6 +143,7 @@ strStream.map(String::toLowerCase)
 
 ### Optional<T>
 * T타입 객체의 래퍼클래스이다.
+* Stream처럼 `filter()`, `map()`, `flatMap()`을 사용할 수 있다.
 ```java
 public final class Optional<T> {
     private final T value;  // T타입의 참조변수이다.
@@ -162,27 +154,153 @@ public final class Optional<T> {
   * null을 직접 다루는 것은 위험하다. (NullPointerException 발생 위험)
   * null 체크를 하려면 if문이 필수인데 코드가 지저분해진다.
 
+#### Optional<T> 객체 생성하기
+
+```java
+String str = "abc";
+Optional<String> optVal = Optional.of(str);
+Optional<String> optVal = Optional.of("abc");   // 위 두문장과 동일
+Optional<String> optVal = Optional.of(null) // NullPinterException 발생
+Optional<String> optVal = Optional.ofNullable(null); // OK
+```
+* null대신 빈 Optional<T> 객체를 사용하자.
+```java
+Optional<String> optVal = null; // null로 초기화는 바람직하지 않음
+Optional<String> optVal = Optional.empty(); 빈 객체로 초기화
+```
+
+#### Optional<T> 객체의 값 가져오기
+1. Optional객체의 값 가져오기(`get()`, `orElse()`. `orElseGet()`, `orElseThrow()`)
+```java
+Optinal<String> optVal = Optional.of("abc");
+String str1 = optVal.get(); // 저장된 값을 반환한다. null이면 예외발생
+String str2 = optVal.orElse("");    // 저장된 값이 null일때 빈문자열을 반환
+String str3 = optVal.orElseGet(String::new);    // 람다식 사용가능(Supplier), 예외종류 지정 가능
+string str4 = optVal.orElseThrow(NullPointerException::new); //널이면 예외 발생
+//orElse()와 orElseGet()을 많이 이용한다.
+```
+
+2. Optional의 값이 null이면 false, 아니면 true를 반환(`isPresent()`)
+```java
+if(Optional.ofNullable(str).isPresent()){ // if문과 함께사용하여 null이 아닐때만 작업 수행
+    System.out.println(str);
+} 
+```
+#### 기본형 값을 감싸는 래퍼클래스
+* OptionalInt, OptionalLong, OptionalDouble
+* Optional<T>를 사용해도 되지만, 성능 때문에 사용한다.
+
+
 ### 최종 연산
 * 연산 결과가 스트림이 아닌 연산으로, 단 한번만 적용 가능하다. (스트림의 요소를 소모)
-* `forEach(Consumer<? super T> action)` 각 요소에 지정된 작업을 수행한다
-* `forEachOrdered(Consumer<? super T> action)` 순서를 유지하여 작업을 수행한다. (병렬 스트림 에서)
-* `count()` 스트림의 요소의 개수를 반환한다.
-* `max(Comparator<? super T> comparator)` 기준에 따라 스트림의 최대값을 반환한다.
-* `min(Comparator<? super T> comparator)` 기준에 따라 스트림의 최소값을 반환한다.
-* `findAny()` 스트림의 아무 요소 하나를 반환한다. 
-  * 병렬 스트림에서 filter와 같이 사용하여 조건에 맞는 요소를 반환한다.
-* `findFirst()` 스트림의 첫 번째 요소 하나를 반환한다 (직렬 스트림에서)
+
+#### 1) forEach()
+* `forEach(Consumer<T> action)` 각 요소에 지정된 작업을 수행한다
+* `forEachOrdered(Consumer<T> action)` 순서를 유지하여 작업을 수행한다. (병렬 스트림에서 사용)
+```java
+IntStream.range(1, 10).parallel().forEach(System.out::print);   //916458723
+IntStream.range(1, 10).parallel().forEachOrdered(System.out::print);    // 123456789
+```
+#### 2) allMatch(), anyMatch(), noneMatch()
 * `allMatch(Predicate<T> p)` 조건식을 모두 만족시키는지 확인한다
 * `anyMatch(Predicate<T> p)` 조건식을 하나라도 만족하는지 확인한다.
 * `noneMatch(Predicate<T> p)` 조건식을 모두 만족하지 않는지 확인한다.
-* `toArray()` 스트림의 모든 요소를 배열로 반환한다.
-* `toArray(IntFunction<A[]> generator)` 스트림의 모든 요소를 특정 타입의 배열로 반환한다.
-* `reduce(accumulator)` 스트림의 요소를 하나씩 줄여가면서 계산한다.
-* `collect(collector)` 스트림의 요소를 수집한다.
-  * 주로 요소를 그룹화 하거나 분할한 결과를 컬렉션에 담아 반환하는데 사용한다.
+
+ 
+#### 3) findFirst(), findAny()
+* `findAny()` 스트림의 아무 요소 하나를 반환한다. (Optional로 반환한다.)
+  * 병렬 스트림에서 filter와 같이 사용하여 조건에 맞는 요소를 반환한다.
+* `findFirst()` 스트림의 첫 번째 요소 하나를 반환한다. (Optional로 반환한다.)
+  * 직렬 스트림에서 사용한다.
+```java
+Optional<Student> result = stuStream.filter(s->s.getTotalScore() <= 100).findFirst();
+Optional<Student> result = parallelStream.filter(s->s.getTotalScore() <= 100).findAny();
+```
+#### 4) count(), max(), min(), sum(), average()
+* `count()` 스트림의 요소의 개수를 반환한다.
+* `max(Comparator<T> comparator)` 기준에 따라 스트림의 최대값을 반환한다.
+* `min(Comparator<T> comparator)` 기준에 따라 스트림의 최소값을 반환한다.
+* `sum()` 모든 요소에 대한 합을 반환한다. (기본형 스트림에서만)
+* `average()` 모든 요소에 대한 평균을 반환한다. (기본형 스트림에서만)
+
+#### 5) reduce()
+* `reduce()`는 스트림의 요소를 하나씩 줄여가며 누적연산을 수행한다.
+* `reduce(BinaryOperator<T> accumulator)`초기값이 없기 때문에 Optional로 반환한다.
+* `reduce(T identity, BinaryOperator<T> accumulator)` T로 반환한다.
+  * identity - 초기값
+  * accumulator - 이전 연산결과와 스트림의 요소에 수행할 연산
+```java
+int count = intStream.reduce(0, (a,b)->a+1);    //count()
+int sum = intStream.reduce(0, (a,b)->a+b);  // sum()
+int max = intStream.reduce(Integer.MIN_VALUE, (a,b)->a>b?a:b);  // max()
+int min = intStream.reduce(Integer.MAX_VALUE, (a,b)->a<b?a:b);  // min()
+```
+* reduce()로의 처리방식은 아래와 같은 구조라 생각하면 된다.
+   ```java
+   //sum()
+   int a = identity;
+   
+   for(int b : stream)
+       a = a + b;
+   ```
+
+#### 6) collect()
+* `collect(Collector collector)` Collector를 구현한 클래스의 객체를 매개변수로 한다.
+* 주로 요소를 그룹화 하거나 분할한 결과를 컬렉션에 담아 반환하는데 사용한다.
+* reduce()와 다르게 collect()는 **그룹별로 나눠서 처리**할 때 사용한다.
+* `Collector`는 collect()에 필요한 메서드를 정의해놓은 인터페이스이다.
+* `Collectors` 클래스는 다양한 기능의 collector를 제공한다. (Collector를 구현한 클래스)
+
+##### Collectors
+* `toList()`, `toSet()`, `toMap()`, `toCollection()` 스트림을 컬렉션으로 변환
+* `toArray()` 스트림을 배열로 변환
+   ```java
+   Student[] stuNames = studentStream.toArray(Student[]::new);
+   Object[] stuNames = studentStream.toArray();
+   ```
+* `counting()`, `summingInt()`, `maxBy()`, `minBy()` 스르팀의 통계정보 제공
+   ```java
+   long count = stuStream.collect(counting());
+   long totalScore = stuStream.collect(summingInt(Sutdent::getTotalScore));
+   Optional<Student> topStudent = stuStream
+                  .collect(maxBy(Comparator.comparingInt(Student::getTotalScore)));
+   ```
+* `reducing()` 스트림을 리듀싱 한다.
+   ```java
+   Optinal<Integer> max = intStream.boxed().collect(reducing(Integer::max)); 
+   long sum = intStream.boxed().collect(reducing(0, (a,b)->a+b));
+   ```
+* `joining()` 문자열 스트림의 요소를 모두 연결한다.
+   ```java
+   String studentNames = stuStrea.map(Student::getName).collect(joining());
+   String studentNames = stuStrea.map(Student::getName).collect(joining(",")); //구분자
+   ```
 
 
+### 스트림의 그룹화와 분할
+* collect()는 그룹화를 통해 나눠놓고 작업이 가능하다.
 
+#### 1) partitioningBy()
+* 스트림의 요소를 2분할 한다.
+```java
+Map<Boolean, Long> suNumBySex = stuStream
+        .collect(partitioningBy(Student::isMale, counting()));  //분할 + 통계
+
+Map<Boolean, Map<Boolean, List<Student>>> failedStuBySex = stuStream
+        .collect(partitioningBy(Student::isMale,
+                 partitioningBy(s->s.getScore() < 150));    //다중 분할
+```
+
+#### 2) groupingBy()
+* 스트림의 요소를 그룹화 한다.
+```java
+Map<Integer, List<Student>> stuByBan = stuStream
+        .collect(groupingBy(Student::getBan, toList()));    //그룹화
+
+Map<Integer, Map<Integer, List<Student>>> stuByHakAndBan = stuStream
+        .collect(groupingBy(Student::getHak,
+                 groupingBy(Student::getBan)));   //다중 그룹화
+```
 
 
 ___
