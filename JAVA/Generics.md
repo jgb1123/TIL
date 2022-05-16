@@ -9,7 +9,10 @@
 ## 2) 타입 변수
 `클래스명<E>` : 지네릭 클래스 (E의 class명또는 E Class명이라 읽음)
 
-`E` : 타입변수 또는 타입 매개변수(E는 타입 문자이며 타입문자로는 보통 E, T를 많이 씀)
+`E` : 타입변수 또는 타입 매개변수
+>`<T>`Type, `<E>`Element, `<K>`Key, `<N>`Number, `<V>`Value, `<R>`Result
+> 
+> *정해진 규칙은 없지만 위와같이 많이 쓴다.
 
 `클래스명` : 원시타입(raw type)
 * **클래스를 작성**할 때 Object타입 대신 타입변수를 선언해서 사용한다.
@@ -18,12 +21,14 @@
       private transient E[] elementaData;
       public boolean add(E o){}
       public E get(int index){}
+      ...
   } 
   ```
 * **객체를 생성**할 때에는 타입변수 대신 실제 타입을 지정해야 한다.
   ```java
   ArrayList<Tv> tvList = new ArrayList<Tv>(); //타입변수 대신 실제 타입을 지정한다.
-  Tv t = list.get(0); // 원래 list는 object로 반환해서 (tv)로 형변환을 해줘야 하나 지네릭스 사용으로 생략가능.
+  tvList.add(new TV());
+  Tv t = tvList.get(0); // 원래 object로 반환하기 때문에 (tv)로 형변환을 해줘야 하나 지네릭스 사용으로 생략가능.
   ```
 
 ## 3) 지네릭스의 다형성
@@ -67,32 +72,60 @@
 
 ## 6) 지네릭스의 제약사항
 * 타입 변수에 대입은 인스턴스 별로 다르게 가능하다. 그러므로 **static멤버에 타입변수는 사용 불가능**하다.
+  ```java
+  Box<Apple> appleBox = new Box<Apple>();
+  Box<Grape> grapeBox = new Box<Grape>();
+  ```
 * 객체와 배열을 생성할 때 타입변수를 사용할 수 없다. (new 다음에 타입변수가 올 수 없다)
-
+  ```java
+  class Box<T>{
+    T[] itemArr;    // 가능
+    T[] toArray(){
+        T[] tmpArr = new T[itemArr.length]; // ❗에러. new 뒤에는 타입이 확정되어있어야 한다.
+    }
+  }
+  ```
 ## 7) 와일드 카드 <?>
 * 하나의 참조변수로 대입된 타입이 다른 객체를 참조할 수 있다.
-```java
-ArrayList<? extends Product> list = new ArrayList<Tv>();
-ArrayList<? extends Product> list = new ArrayList<Audio>();
-```
+   ```java
+   ArrayList<? extends Product> list = new ArrayList<Tv>();
+   ArrayList<? extends Product> list = new ArrayList<Audio>();
+   ```
 
 * `<? extends T>` 와일드 카드의 상한 제한. T와 그 자손들만 가능하다.
 
 * `<? super T>` 와일드카드의 하한 제한. T와 그 조상들만 가능하다.
 
-* `<?>` 제한 없음. 모든타입이 가능하다. (`<Extends Object>`와 동일)
+* `<?>` 제한 없음. 모든타입이 가능하다. (`<? Extends Object>`와 동일)
 
-* 메서드의 매개변수에도 와일드 카드를 사용할 수 있다.(다형성을 얻을 수 있다.)
-```java
-static Juice makeJuice(FruitBox<? extends Fruit> box){  //와일드카드가 없으면 Fruit만 가능
-    ~~~
-} 
-```
+* 메서드의 매개변수에도 와일드 카드를 사용할 수 있다.(다형성같은 효과를 얻을 수 있다.)
+   ```java
+   static Juice makeJuice(FruitBox<? extends Fruit> box){  //와일드카드가 없으면 Fruit만 가능
+           ...                                   //와일드카드가 있기 떄문에 Apple등 자손도 가능
+   } 
+   ```
 
 ## 8) 지네릭 메서드
 * 지네릭 메서드는 지네릭 타입이 선언된 메서드로, 타입변수는 메서드 내에서만 유효하다.
-* 메서드를 호출할 때마다 타입을 대입해야 한다. (대부분 생략 가능하다.)
-* 드물지만 타입을 생략하지 못할 때는 클래스 이름까지 써야 한다.
+  ```java
+  class FruitBox<T> {}  // class의 <T>와 아래 메서드의<T>는 같아도 별개이다. (메서드 우선)
+    static <T> void sort(List<T> list, Comparator<? super T> c){
+  
+    }
+  }
+  ```
+* 메서드를 호출할 때마다 타입을 대입해야 한다. (대부분 생략 가능하고, 못할 때는 클래스 이름까지 써야 한다.)
+  ```java
+  static <T extends Fruit> Juice makeJuice(FruitBox<T> box){
+     ...
+  }
+  ```
+  ```java
+  FruitBox<Fruit> fruitBox = new FruitBox<Fruit>();
+  FruitBox<Apple> appleBox = new FruitBox<Apple>();
+  Systema.out.println(Juicer.<Fruit>makeJuice(fruitBox));   // 호출 시 클래스 이름 및 타입 대입
+  Systema.out.println(Juicer.makeJuice(appleBox));          // 대부분은 생략 가능하다.
+  ```
 
 ### 매개변수에서의 와일드카드 vs 지네릭 메서드
 * 와일드카드는 하나의 참조변수로 서로 다른 타입이 대입된 여러 지네릭 객체를 다루기 위한 것이다.
@@ -106,7 +139,7 @@ static Juice makeJuice(FruitBox<? extends Fruit> box){  //와일드카드가 없
   Box box = (Box)objBox;        // 지네릭타입 -> 원시타입 가능하지만 경고발생
   objBox = (Box)<Object>)box;   // 원시타입 -> 지네릭타입 가능하지만 경고발생
   ```
-  * 애초에 원시타입을 쓰는게 바람직하지 않다.
+  * 지네릭 클래스를 애초에 원시타입으로 쓰는게 바람직하지 않다.
 
 * 서로 다른 타입이 대입 된 지네릭 타입끼리는 형변환이 불가능하다
   ```java
@@ -115,8 +148,8 @@ static Juice makeJuice(FruitBox<? extends Fruit> box){  //와일드카드가 없
 
 * 와일드 카드가 사용된 지네릭 타입으로는 형변환이 가능하다.
   ```java
-  Box<? extends Object> wbox = (Box<? extends Object>)new Box<String>();    //형변환 생략가능
-  Box<? extends Object> wbox = new Box<String>();   //가능, 위 문장과 동일함
+  Box<? extends Object> wbox = (Box<? extends Object>)new Box<String>();    //가능
+  Box<? extends Object> wbox = new Box<String>();   //형변환 생략 가능, 위 문장과 동일함
   ```
 
 ### 지네릭 타입의 제거
