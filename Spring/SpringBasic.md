@@ -155,10 +155,10 @@
 * dependencies에서 설정했던 라이브러리들을 볼 수 있고, 테스트파일로는 Junit5가 기본적으로 들어간다.
 * 이러한 라이브러리들을 mavenCentral을 통해 특정 사이트에서 다운받도록 되어있다.
 
-## 기본적인 라이브러리
+### 기본적인 라이브러리
 * Gradle은 의존관계가 있는 라이브러리들을 함께 다운로드한다.
 * 아래는 아주 기본적인 라이브러리들이다.
-### 스프링 부트 라이브러리
+#### 스프링 부트 라이브러리
 * spring-boot-starter-web
   * spring-boot-starter-tomcat : 톰캣(웹서버)
   * spring-webmvc : 스프링 웹 MVC
@@ -169,11 +169,54 @@
   * spring-boot-starter-logging
     * logback, slf4j
 
-### 테스트 라이브러리
+#### 테스트 라이브러리
 * spring-boot-starter-test
   * junit : 테스트 프레임워크
   * mockito : 목 라이브러리
   * assertj : 테스트 코드를 좀 더 편하게 작성하도록 도와주는 라이브러리
   * spring-test : 스프링 통합 테스트 지원
 
+## 일반적인 웹 애플리케이션 계층 구조
+![img.png](images/웹 애플리케이션 계층 구조.png)
+* Controller : 웹 MVC의 컨트롤러 역할
+* Service : 핵심 비즈니스 로직 구현
+* Domain : DB에 저장하고 관리되는 비즈니스 도메인 객체
+* Repository : 비즈 도메인 객체로 핵심 비즈니스 로직이 동작하도록 구현한 계층
 
+
+## DI(dependency Injection)
+### Spring Container와 Bean
+#### Spring Container
+* Spring Container는 Spring의 핵심 컴포넌트이다.
+* 내부에 존재하는 애플리케이션 Bean의 생명주기를 관리한다. (Bean 생성, 관리 제거 등)
+* `ApplicationContext`를 Spring Container라고 하며, 인터페이스로 구현되어 있다. (다형성)
+* XML, 애너테이션 기반의 자바 설정클래스로 만들 수 있다.
+* Spring Container를 통해 원하는 만큼 많은 객체를 가질 수 있다.
+* 의존성 주입을 통해 애플리케이션의 컴포넌트를 관리한다
+  * 서로 다른 Bean을 연결해 애플리케이션의 Bean을 연결하는 역할을 한다.
+  * 모듈 간에 의존 및 결합으로 인해 발생하는 문제로부터 자유로울 수 있다.
+  * 메서드가 언제 어디서 호출되어야 하는지, 호출하기위해 필요한 매개변수를 준비해서 전달하지 않는다.
+#### Spring Container 사용 이유
+* 객체 간의 의존성을 낮추기 위해 사용된다.
+* Spirng Container를 사용하면서 구현 클래스에 있는 의존을 제거하고, 인터페이스에만 의존하도록 설계할 수 있다.
+
+#### Spring Container 종류
+##### BeanFactory
+* Spring Container 최상위 인터페이스이다.
+* 빈을 등록하고 생성하고 조회하고 반환하는 등 빈을 관리하는 역할을 한다.
+* getBean() 메서드를 통해 빈을 인스턴스화할 수 있다.
+* `@Bean`이 붙은 메서드의 명을 Spring Bean의 이름으로 사용해 Bean을 등록한다
+
+##### ApplicationContext
+* BeanFactory의 기능을 상속받아 제공한다.
+* Bean을 관리하고 검색하는 기능을 BeanFactory가 제공하고, 그 외에 여러 부가기능들을 제공한다.
+  * MessageSourc : 메세지 다국화를 위한 인터페이스
+  * EnvironmentCapable : 개발, 운영 등 환경변수 등으로 나눠 처리하고 애플리케이션의 구동 정보들을 관리하기 위한 인터페이스
+  * ApplicationEventPublisher : 이벤트 관련 기능을 제공하는 인터페이스
+  * ResourceLoader : 파일, 클래스 패스, 외부 등 리소스를 편리하게 조회
+
+#### Bean
+* Spring Container가 관리하는 자바 객체를 의미하며, 하나 이상의 Bean을 관리한다.
+* `@Bean`이 적힌 메서드를 모두 호출해서 반환된 객체를 스프링 컨테이너에 등록한다
+* Bean은 클래스의 등록 정보, 게터/세터 메서드를 포함한다.
+* 컨테이너에 사용되는 설정 메타데이터로 생성된다.
