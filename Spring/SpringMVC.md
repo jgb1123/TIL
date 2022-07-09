@@ -159,7 +159,13 @@
 * 또한 프론트 컨트롤러를 제외한 나머지 컨트롤러는 서블릿을 사용하지 않아도 된다.
 * **스프링 웹 MVC의 `DispatcherServlet`이 프론트 컨트롤러 패턴으로 구현**되어 있다.
 
-## SpringMVC
+
+## Spring MVC
+* Spring MVC의 주요 구성 요소는 MVC패턴의 Model, View, Controller에 추가적으로 DispatcherServlet(Front Controller)가 있다.
+* MVC패턴 + FrontControllder패턴 이라고 생각하면 된다.
+* 프론트 컨트롤러인 DispatcherServlet로 인해 컨트롤러에서의 공통 처리가 가능해졌고, 또한 컨트롤러들은 서블릿을 사용하지 않아도 된다.
+* 굉장이 유연하고 확장성 있게 웹 어플리케이션을 만들 수 있다.
+
 ### 동작 순서
 ![](images/SpirngMVC 구조.png)
 1. HTTP 요청이 들어온다.
@@ -172,7 +178,7 @@
 8. View 반환 : 뷰 리졸버는 뷰의 논리 이름을 물리 이름으로 바꾸고, 렌더링 역할을 담당하는 뷰 객체를 반환한다.
 9. 뷰 렌더링 : 뷰를 통해서 뷰를 렌더링 한다.
 
-### @RequestMapping
+## @RequestMapping
 * 과거 스프링은 유연한 컨트롤러를 제공하지 못했다.
   * 과거 스프링은 MVC부분이 부족해 MVC 웹 기술은 스트럿츠와같은 다른 프레임워크를 사용했다.
 * 스프링은 애너테이션을 활용한 매우 유연하면서 실용적인 컨트롤러를 만들었다.
@@ -181,25 +187,37 @@
 * 스프링에서 가장 우선순위가 높은 매핑과 핸들러는 `RequestMappingHandlerMapping`, `RequestMappingHandlerAdapter`이다.
   * `@RequestMapping`의 앞글자를 따서 만들었다.
 
-#### @RequestMapping의 옵션
-##### value
+
+### @RequestMapping의 옵션
+#### value
 * 연결할 URL을 말한다.
 * 보통 호스트 주소와 포트번호를 제외하고 api설계 규약에 따라 이름을 짓는다.
   ```java
-  @RequestMapping(value = "/members")
+  @RequestMapping(value = "/hello")
   ```
 
 * `{}`사이에 변수를 넣어서 url을 매핑하는 것도 가능하다.
   ```java
-  @RequestMapping(value = "/members/{id}")
+  @RequestMapping(value = "/hello/{id}")
   ```
   * 이 경우 메서드 파라미터로 `@PathVariable`을 id로 받으면 된다.
+* `@RequestMapping`은 컨트롤러의 클래스단에 붙이면, 공통되는 URL을 뽑아서 사용할 수 있다.
+  ```java
+  @RestController
+  @RequestMapping("/hello")
+  public class HelloController{
+    @RequestMapping("/spring")  // hello/spring
+    public String helloSpirng(){
+        return "ok";
+    }
+  }
+  ```
 
-##### method
+#### method
 * `@RequestMapping`은 URL만 매칭하는 것이 아니라 HTTP Method도 함께 구분할 수 있다.
 * URL이 `/members`이고, HTTP Method가 GET인 경우 아래와 같이 처리하면 된다.
   ```java
-  @RequestMapping(value = "/members", method = RequestMethod.GET)
+  @RequestMapping(value = "/hello", method = RequestMethod.GET)
   ```
 * GET, POST, PUT, DELETE, PATCH 등을 적용할 수 있다.
 * 위의 HTTP Method들은 `@GetMapping`, `@PostMapping`과 같이 애너테이션으로 더 편하게 구분하여 사용할 수 있다.
@@ -208,3 +226,134 @@
   ```
   * 해당 애너테이션들의 원리는 단순하다.
   * @GetMapping 애너테이션 안에는 `@RequestMapping(method = RequestMethod.GET)`가 들어있다.
+
+
+#### consumes
+* 처리 가능한 미디어 타입의 목록을 지정해서 매핑을 제한할 수 있다.
+* Content-Type Header가 consumes에 지정한 미디어 타입과 일치할 때만 매핑이 된다.
+  ```java
+  @GetMapping(value = "/hello", consumes = "application/json")
+  ```
+#### produces
+* 응답 가능한 미디어 타입의 목록을 지정해서 매핑을 제한할 수 있다.
+* Accept Header가 produces에 지정한 타입과 일치할 때만 해당 타입으로 응답을 보내준다.
+  ```java
+  @GetMapping(value = "/hello", produce = "MediaType.APPLICATION_JSON_VALUE")
+  ```
+  
+## HTTL 요청
+* 클라이언트에서 서버로 요청 데이터를 전달할 때는 보통 3가지 방법을 사용한다.
+1. GET - 쿼리 파라미터
+   * /hello?username=hello&age=30
+   * 메시지 바디 없이 URL의 쿼리 파라미터에 데이터를 포함해서 전달하는 방법이다
+   * ex) 검색, 필터, 페이징 등에서 많이 사용한다.
+2. POST - HTML Form
+   * content-type : application/x-www-form-urlencoded
+   * 메시지 바디에 쿼리 파라미터 형식으로 전달한다 username=hello&age=30
+   * 예)회원 가입, 상품 주문, HTML Form 사용
+3. HTTP message body에 데이터를 직접 담아서 요청
+   * HTTP API에서 주로 사용한다.
+   * 데이터 형식은 주로 JSON을 사용한다
+   * POST, PUT, PATCH
+
+## HTTP 요청 파라미터
+* GET 쿼리 파라미터 전송 방식과, POST HTML Form전송 방식 둘다 형식이 같으므로 구분없이 조회할 수 있다.
+* 이것을 요청 파라미터 조회라고 한다.
+### @RequestParam
+* Spring이 제공하는 `@RequestParam`을 사용하면 요청 파라미터를 편리하게 사용할 수 있다.
+* 파라미터 이름으로 바인딩 한다.
+* /hello?username=hello&age=30과 같이 요청이 들어오면 `@RequestParam의 파라미터 이름에 맞게 세팅된다.
+  ```java
+  @GetMapping("/hello")
+  public String helloParam(@RequestParam("username") String username,
+                           @RequestParam("age") int age){
+    return "ok";
+  }
+  ```
+* `@RequestParam("username") String username`과 같이 파라미터 이름이 변수 이름과 같으면 파라미터를 생략할 수 있다.
+  * `@RequestParam String username`
+#### @RequestParam 옵션
+##### required
+* `required` 옵션을 통해 파라미터 필수 여부를 정할 수 있다.
+* `@RequestParam(required = false) String username`
+* 기본값은 은true이다(필수)
+
+##### defaultValue
+* 파라미터에 값이 없는 경우 `defaultValue` 옵션을 통해 기본 값을 적용할 수 있다.
+* `@RequestParam(defaultValue = "guest") String username`
+* 만약 사용한다면 이미 기본값이 있는 것이기 때문에 `required` 옵션의 의미는 사라진다.
+* 
+### @ModelAttribute
+* 실제 개발 시 요청 파라미터를 받아서 필요한 객체를 만들고, 그 객체에 값을 넣어주어야 한다.
+* 스프링은 이 과정을 자동화해주는 `@ModelAttribute`기능을 제공한다.
+
+```java
+@Data
+public class MemberData{
+    private String username;
+    private int age;
+}
+```
+```java
+@ResponseBody
+@RequestMapping("/hello")
+public String modelAttributeV1(@ModelAttribute(name="memberData") MemberData memberData) {
+    return "ok";
+}
+```
+* 위 코드와 같이 해도 Model에 자동으로 저장이 된다. (view단에서 사용 가능)
+  * `@ModelAttribute`의 `name` 옵션을 통해 Model의 attributeName을 설정할 수 있다. 
+  * `name` 옵션은 생략하면 맨 앞글자를 소문자로 해서 저장해 준다.
+### @RequestParam, @ModelAttribute의 생략
+* 둘다 상황에 따라 생략해서 사용할 수 있다.
+* 스프링은 해당 애너테이션들을 생략 시 String, int와 같은 단순 타입은 @RequestParam을 사용하고, 나머지들은 @ModelAttribute(argument resolver로 지정해둔 타입 외)를 사용한다.
+* 둘다 생략이 가능하기 때문에 혼란이 발생할 수 있다.
+
+## HTTP 요청 메시지
+* HTTP message body에 데이터를 직접 담아서 요청한다.
+* 요청 파라미터와 다르게, HTTP 메시지 바디를 통해 데이터가 직접 넘어오는 경우에는 `@RequestParam`, `@ModelAttribute`를 사용할 수 없다.
+  * HTML Form형식으로 전달되는 경우는 요청파라미터로 인정된다.
+
+### @RequestBody
+* `@RequestBody`를 사용하면 HTTP메시지 바디 정보를 편리하게 조회할 수 있다. 
+  * `@RequestParam`과 `@ModelAttribute`와는 전혀 관계가 없다. (이 두개는 요청 파라미터를 조회하는 기능임)
+  * `@RequestBody`는 HTTP 메시지 바디를 직접 조회하는 기능이다.
+* `@RequestBody`에 직접 만든 객체를 지정할 수 있다.
+* `@RequestBody`를 사용하면 HTTP 메시지 컨버터가 HTTP 메시지 바디의 내용을 원하는 문자나 객체 등으로 변환해준다.
+* HTTP메시지 컨버터는 문자 뿐만 아니라 JSON도 객체로 변환해준다.
+#### @RequestBody 생략?
+* `@RequestBody`은 생략할 수 없다.
+* 스프링은 `@RequestParm`, `@ModelAttribute`을 생략하면 특정 규칙을 적용해 인식한다. (위에서 정리함)
+* `@RequestBody`를 생략하면 `@ModelAttribute`가 적용되어 버리므로 생략할 수 없다. (요ㅊ)
+
+## HTTP 응답
+* 스프링에서 응답 데이터를 만드는 방법은 크게 3가지이다.
+
+1. 정적 리소스
+   * 웹 브라우저에 정적인 HTML, css, js를 제공할 때는 정적 리소스를 사용한다.
+2. 뷰 템플릿 사용
+   * 웹 브라우저에 동적인 HTML을 제공할 때는 뷰 템플릿을 사용한다.
+3. HTTP 메시지 사용
+   * HTTP API를 제공하는 경우에는 HTML이 아니라 데이터를 전달해야 하므로, HTTP메시지 바디에 JSON같은 형식으로 데이터를 실어보낸다.
+
+### 정적 리소스
+* 스프링 부트는 클래스패스의 아래 디렉토리에 있는 정적 리소스를 제공한다.
+  * `/static`, `/public`, `resources`, `/META-INF/resources`
+  * 설정을 통해 위치를 변경할 수 있고, 설정을을 따로 하지 않았으면 위의 경로 중 한곳에 생성해야 자동으로 리소스를 찾아준다.
+* `src/main/resources`는 리소스를 보관하는 곳이고, 클래스패스의 시작 경로이다.
+
+* 만약 `src/main/resouces/static/basic/hello.html`과 같이 `hello.html`이 들어있으면, 웹 브라우저에서는 `http://localhost:8080/basic/hello.html`과 같이 실행하면 된다
+* 정적 리소스는 해당 파일을 변경 없이 그대로 보여주는 것이다.
+
+### 뷰 템플릿
+* 뷰 템플릿을 거쳐서 HTML이 생성되고, 뷰가 응답을 만들어서 전달한다.
+* 일반적으로 HTML을 동적으로 생성하는 용도로 사용하며, 다른 것들도 가능하다.(뷰 템플릿이 만들 수 있는것이면 모두 가능)
+* 스프링 부트는 아래와 같은 경로에 기본 뷰 템플릿 경로를 제공한다.
+  * `src/main/resources/templates`
+* `@ReponseBody`가 없으면 해당 경로로 뷰 리졸버가 실행되어 뷰를 찾고, 렌더링한다.
+* `@ReponseBody`가 있으면 뷰 리졸버를 실행하지 않고, HTTP 메시지 바디에 직접 해당 경로의 문자가 입력된다.
+### HTTP API, 메시지 바디에 직접 입력
+* HTTP API를 제공하는 경우 HTML이 아니라 데이터를 전달해야 하므로, HTTP 메시지 바디에 JSON같은 형식으로 데이터를 실어 보낸다.
+  * 정적 리소스나 뷰 템플릿을 거치지 않고 직접 HTTP 응담 메시지를 전달하는 경우를 말한다.
+
+## HTTP 메시지 컨버터
