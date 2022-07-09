@@ -108,7 +108,7 @@
 
 * LinkedList는 배열에 비해 데이터 접근성이 나쁘다
   * doubly linked list와 double circle linked list로 접근성을 향상시켰고, 보통 doubly Linked list를 이용한다.
-![](/images/LinkedList.PNG)
+![](./images/LinkedList.PNG)
 #### ArrayList(배열기반) vs LinkedList(연결기반)
 
 | 컬렉션        |  접근시간  |  데이터추가/삭제  | 특징                                 |

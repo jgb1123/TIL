@@ -51,7 +51,7 @@
 
 
 ## Spring의 핵심 개념
-![img.png](images/Spring 삼각형.png)
+![](./images/Spring삼각형.png)
 * 위 그림은 Spring 삼각형이라는 유명한 그림이다.
 * 이 삼각형 하나로 Spring의 핵심 개념들을 모두 표현하고 있다고 봐도 된다.
 * 그림에서 POJO는 Spring에서 사용하는 핵심 개념들에 둘러 싸여져 있는 모습인데, POJO라는 것을 IoC/DI, AOP, PSA를 통해서 달성할 수 있다는 것을 의미한다.
@@ -121,7 +121,7 @@
 * 데이터 액세스 계층은 비즈니스 계층에서 처리된 데이터를 데이터베이스 등의 데이터 저장소에 저장하기 위한 계층이다.
 
 ### Spring Module의 아키텍처
-![img.png](images/Spring 아키텍처.png)
+![](./images/Spring아키텍처.png)
 * 위 사진은 Spring Framework에서 지원하는 모듈들을 아키텍처로 표현한 그림이다.
 * 지금은 각 모듈들이 눈에 잘 들어오지 않지만, 추후 Spring을 더 공부하고 나서 다시 보면 눈에 많이 익숙해져 있을 것이다.
 
@@ -376,7 +376,7 @@
 * **거의 사용하지 않는다.**
 
 ## 일반적인 웹 애플리케이션 계층 구조
-![img.png](images/웹 애플리케이션 계층 구조.png)
+![](./images/웹_애플리케이션_계층_구조.png)
 * Controller : 웹 MVC의 컨트롤러 역할
 * Service : 핵심 비즈니스 로직 구현
 * Domain : DB에 저장하고 관리되는 비즈니스 도메인 객체

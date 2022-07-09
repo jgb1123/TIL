@@ -184,7 +184,7 @@ HTML의 엘리먼트들은 박스의 형태를 가지고 있는데 이러한 것
 [[Inline element 목록]](https://developer.mozilla.org/en-US/docs/Web/HTML/Inline_elements)
 
 ### 2) 박스를 구성하는 요소
-![](images/boxmodel.png)
+![](./images/boxmodel.png)
 
 위 사진과 같이 Border(테두리)를 기준으로 Padding(안쪽 여백)과 Margin(바깥 여백)이 있다.
 1. Border(테두리)
