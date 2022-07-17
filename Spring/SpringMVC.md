@@ -356,4 +356,7 @@ public String modelAttributeV1(@ModelAttribute(name="memberData") MemberData mem
 * HTTP API를 제공하는 경우 HTML이 아니라 데이터를 전달해야 하므로, HTTP 메시지 바디에 JSON같은 형식으로 데이터를 실어 보낸다.
   * 정적 리소스나 뷰 템플릿을 거치지 않고 직접 HTTP 응담 메시지를 전달하는 경우를 말한다.
 
-## HTTP 메시지 컨버터
+___
+참고
+
+[인프런 김영한님의 Spring MVC 1편](https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%81-mvc-1/dashboard)
