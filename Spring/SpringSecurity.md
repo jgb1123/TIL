@@ -2,7 +2,12 @@
 ## Spring Security?
 * Spring Framework 기반 애플리케이션의 인증(Authentication)과 인가(Authorization) 기능을 가진 프레임워크다.
 * 모든 자바 애플리케이션에 적용 가능하지만 웹 애플리케이션에서 많이 쓰이고 있다.
-* 스프링 인터셉터, 필터 기반의 보안 기능을 구현하는 것보다, 스프링 시큐리티를 통해 구현하는 것을 권장하고 있다.
+* 스프링 시큐리티는 인증과 인가에 대한 부분을 Servlet Filter기반으로 처리하고 있다.(SpringMVC와 같은 특정 웹 기술과의 의존성은 없음)
+  > Filter vs Interceptor
+  > * Filter는 DispatcherServlet 전에 적용되므로 가장 먼저 URL요청을 받는다
+  > * Interceptor는 DispatcherServlet과 Controller 사이에 위치하기 때문에 Filter와의 적용 시기의 차이가 있다.
+* 애플리케이션의 보안 절차를 일일이 구축하고 관리하는 것은 굉장히 힘든 일이지만, Spring Security는 이미 잘 구성된 체계적인 보안 흐름과 그에 포함된 다양한 모듈을 제공해준다.
+  * 개발자가 직접 제로베이스에서 보안 로직을 작성하지 않아도 체계화된 보안 프로세스를 적용할 수 있다.
 * 스프링의 대부분 프로젝트들처럼 확장성을 고려한 프레임워크 이므로, 다양한 기능들을 손쉽게 추가하고 변경할 수 있다.
 * Java8 이상에서만 사용할 수 있다.
 > 용어 정리
@@ -27,10 +32,7 @@
 >   * 웹 요청 권한
 >   * 메서드 호출 및 도메인 인스턴스에 대한 접근 관한
 
-## Spring Security를 사용해야 하는 이유
-* 애플리케이션의 보안 절차를 일일이 구축하고 관리하는 것은 굉장히 힘든 일이다.
-* Spring Security는 이미 잘 구성된 체계적인 보안 흐름과 그에 포함된 다양한 모듈을 제공해준다.
-* 따라서 개발자가 직접 제로베이스에서 보안 로직을 작성하지 않아도 체계화된 보안 프로세스를 적용할 수 있다.
+
 ## Spring Security의 기능
 * 모든 요청에 대해서 인증을 요구한다
 * username/password를 가진 사용자가 양식 기반 인증을 제공해준다.
@@ -45,6 +47,32 @@
   * X-XSS-Protection 통합
   * 클릭재킹을 방지하는 X-Frame-Options 통합
 * Servlet API 메서드와의 통합
+
+## Filter
+* 스프링 시큐리티는 Servlet Filter기반으로 인증과 인가에 대한 부분을 처리하고 있다.
+* 클라이언트가 서버로 요청을 하게 되면 먼저 Servlet Filter를 거치게 된다.
+* Filter를 모두 거치고 난 후 `DispatcherServlet`과 같은 Servlet에서 요청이 처리된다.
+
+### FilterChain
+* `FilterChain`은 의미 그대로 여러개의 Filter들이 사슬처럼 연결되어 연쇄적으로 동작한다.
+* 하나의 서블릿은 단일요청을 처리하지만 필터는 체인을 형성하여 실제 요청을 순서대로 수행한다.
+* Filter의 순서는 2가지 방법으로 지정 가능한데, `@Order`애너테이션이나 `Ordered`를 구현하는 방법과, `FilterRegistrationBean`을 이용해 순서를 설정하여 필터를 등록하는 방법이 있다.
+
+
+### DelegatingFilterProxy
+* 우선 사용자가 처음 요청을 하면 서블릿 필터를 거치게 된다.
+* 스프링 시큐리티에서 사용하는 필터들은 스프링 빈으로 등록이 되어있고, 이 빈들은 서블릿 필터에서는 사용이 불가능 하다. (스프링 컨테이너, 스프링 컨테이너)
+* 그래서 이 스프링 시큐리티 필터들을 수행해 줄 필터가 필요한데 그 역할을 `DelegatingFilterProxy`가 한다.
+* `DelegatingFilterproxy`는 서블릿 컨테이너에 등록되어 있다.
+* `DelegatingFilterproxy`에서는 `ApplicationContext`에서 `FilterChainproxy`라는 빈을 찾아 보안처리를 위임한다.
+
+### FilterChainProxy
+* `springSecurityFilterChain`이름으로 생성되는 스프링 빈이다.
+* `DelegatingFilterProxy`로 부터 요청을 위임 받고 실제 보안 처리를 한다.
+* 스프링 시큐리티가 초기화될 때 관리할 필터들을 결정한다. (기본필터 + 설정한 추가필터)
+* 필터를 순서대로 호출해서 사용자 요청을 각각의 필터에 전달한다
+* 마지막 필터까지 예외가 발생하지 않으면 인증에 성공한다.
+
 ## Spring Security 사용 방법
 * Seuciryty 관련 Config 클래스에 `@EnableWebSecurity`를 적용하면 웹 보안 활성화를 위한 여러 클래스들을 import해준다. (SpringSecurityFilterChain에 등록되며, 스프링 시큐리티를 사용)
 * filterChain 메서드를 생성하여 빈에 등록하며, 여기서 인자로 사용되는 `HttpSecurity`클래스가 있고, 이 클래스에서 인증과 관련된 API들이 제공된다.
