@@ -133,3 +133,113 @@ protected void configure(HttpSecurity http) throws Exception {
 4. 최종 `Authentication` 객체는 `SecurityContext`에 저장된다.
 5. `SecurityContext`에 저장된 후에는 `SuccessHandler`를 호출하여 실행하게 된다.
 6. 이후 `SecurityContextHolder.getContext().getAuthentication()`를 통해 인증 객체를 꺼내서 쓸 수 있다.
+
+## Spring Security의 인증 처리 과정
+![](./images/SpringSecurity_인증_구조.png)
+1. 사용자로부터 요청을 받으면 `AuthenticationFilter`가 요청을 받아 인증을 진행한다.
+2. `UsernamePasswordAuthenticationFilter`를 통해 username과 password를 `UsernamePasswordAuthenticationToken`객체를 만든다.
+3. 이 만들어진 토큰은 검증을 위해 `AuthenticationManager`의 구현체인 `ProviderManager`로 전달된다.
+4. `AuthenticationManager`는 등록된 `AuthenticationProvier`를 조회하여 인증을 요구한다.
+5. 실제 DB에서 사용자 인증 정보를 가져오는 `UserDetailsService`에 사용자 정보를 넘겨준다.
+6. 넘겨받은 사용자 정보를 통해 DB에서 찾은 사용자 정보인 `UserDetails` 객체를 만든다.
+7. `AuthenticationProvider`는 `UserDetails`를 넘겨받아 사용자 정보를 비교한다.
+8. 인증이 완료되면 권한등의 사용자 정보를 담은 `Authentication` 객체를 반환한다.
+9. `AuthenticationFilter`에도 `Authentication` 객체가 반환된다.
+10. `Authentication` 객체를 `SecurityContext`에 저장한다.
+
+### Authentication
+* 사용자의 인증 정보를 저장하는 토큰 개념으로 사용된다.
+* 인증 시 username과 password를 담고 인증 검증을 위해 사용된다.
+* 인증 후엔 최종 인증결과를 담으며, `SecurityContext`에 저장되어 전역적으로 참조가 가능하다.
+  * `principal` : 사용자 아이디나 객체를 저장
+  * `credentials` : 사용자 비밀번호
+  * `authorities` : 인증된 사용자의 권한 목록
+  * `details` : 인증 부가 정보
+  * `Autenticated` : 인증 여부 (Boolean)
+### SecurityContext
+* `Authentication` 객체가 저장되는 저장소로 필요시 `Authentication` 객체를 꺼내서 쓸 수 있다.
+* `ThreadLocal`에 저장되어 아무 곳에서나 참조가 가능하도록 설계되어있다.
+* 인증이 완료되면 `HttpSession`에 저장되어 애플리케이션 전반에 걸쳐 전역적인 참조가 가능해진다.
+
+### SecurityContextHolder
+* `SecurityContext`객체를 저장하고 감싸고 있는 wrapper 클래스이다.
+* `SecurityContext`객체를 3가지 저장방식에 따라 저장을 한다.
+  * `MODE_THREADLOCAL` : 스레드당 SecurityContext객체를 할당한다. (default)
+  * `MODE_INHERITABLETHREADLOCAL` : 메인 스레드와 자식 스레드에 관하여 동일한 `SecurityContext`를 유지한다.
+  * `MODE_GLOBAL` : 응용 프로그램에서 단 하나의 `SecurityContext`를 저장한다. (메모리에서 단 하나의 `SecurityContext`를 가지고 참조)
+* `SecurityContextholder.clearContext()`는 SecurityContext 기본 정보 초기화 메서드이다.
+
+### UsernamePasswordAuthenticationFilter
+* 인증 요청에 대한 인증을 수행하는 Filter이다.
+* 요청이 들어오고 만약 `RequestMatcher`와 매칭되지 않으면 이 필터는 아무작업도 수행하지 않고 `FilterChain`은 계속 진행 된다.
+* 매칭이 되면 `AuthenticationFilter`에 명시된 `AuthenticationManager`를 사용하여 인증을 수행한다.
+* 인증에 성공하면 `AuthenticationSuccessHandler`가 호출되고, 인증이 `SecurityContext`에 저장된다.
+* 인증에 실패하면 `AuthenticationFailureHandler`가 호출된다.
+
+### UsernamePasswordAuthenticationToken
+* `Authentication`을 구현한 `AbstractAuthenticationToken`의 하위 클래스이다.
+* username은 `Principal`의 역할을 하고, password는 `Credential`의 역할을 한다.
+* 2개의 생성자가 있으며, 인증 전의 객체를 생성하는 생성자와, 인증이 완료된 객체를 생성하는 생성자가 있다.
+
+### Authentication Manager
+* 인증에 대한 부분은 SpringSecurity의 `AuthenticationManager`를 통해 처리하게 되며, `AuthenticationManager`에 등록된 `AuthenticationProvider`에 의해 처리된다.
+* 인증에 성공하면 인증이 성공한 `Authentication` 객체를 생성하며, 인증에 실패한 경우 `AuthenticationException`을 발생시킨다.
+* `AuthenticationManager`를 구현한 `ProviderManager`는 실제 인증 과정에 대한 로직을 갖고 있는 `AuthenticationProvider`를 List로 가지고 있으며, 모든 provider들을 조회하며 인증 처리를 한다.
+* `ProviderManager`에는 직접 Custom한 `AuthenticationProvider`를 등록할 수 있고, 등록 방법은 SecurityConfig에서 빈으로 등록하면 된다.
+
+### UserDetails
+* 사용자의 정보를 담는 인터페이스이다.
+* 사용자의 정보를 불러오기 위해 구현해야 하는 인터페이스로, 기본 오버라이드 메서드들이 있다.
+  * `getAuthorities()` : 계정의 권한 목록을 가져옴
+  * `getPassword()` : 계정의 비밀번호를 가져옴
+  * `getUsername()` : 계정의 id를 가져옴
+  * `isAccountNonExpired()` : 계정의 만료 여부 (true면 만료 안됨)
+  * `isAccountNonLocked()` : 계정의 잠김 여부 (true면 잠기지 않음)
+  * `isCredentialsNonExpired()` : 비밀번호 만료 여부 (true면 만료 안됨)
+  * `isEnabled()` : 계정의 활성화 여부 (true면 활성화 됨)
+
+
+### UserDetailsService
+* `UserDetailsService` 인터페이스는 `UserDetails` 객체를 반환하는 단 하나의 메서드만 가지고 있다.
+  * `loadUserByUsername` : 유저의 정보를 불러와서 `UserDetails`로 리턴한다.
+* 보통 이 인터페이스를 구현한 구현체에서 UserRepository를 주입받아 DB와 연결하여 처리한다.
+
+## SpringSecurity 인가 처리 과정
+1. 요청 시 `FilterSecurityInterceptor`에서 요청을 받아 인증여부를 확인한다.
+2. 인증 객체가 있으면 `SecurityMetadataSource`는 자원에 접근하기 위해 설정된 권한 정보를 조회해서 전달해준다.
+   * 인증 객체 없이 자원에 접근을 시도하게 되면 `AuthenticationException`을 발생시키며, `ExceptionTranslationFilter`에서 해당 예외를 받아 다시 로그인 페이지로 이동 하는 등의 후처리를 한다.
+3. 권한 정보가 있을 경우 `AccessDecisionManager`에게 권한 정보를 전달하여 위임한다.
+   * 권한 정보가 없으면 권한 심사를 하지 않고 자원 접근을 허용한다.
+4. `AccessDecisionManager`는 내부적으로 `AccessDecisionVoter`를 통해 심사를 한다.
+5. 반환된 결과(승인, 거부)를 가지고 사용자가 해당 자원에 접근 가능한지 판단한다.
+  * 접근이 거부되면 `AccessDeniedException`이 발생하며, `ExceptionTranslationFilter`에서 해당 예외를 받아 다시 로그인 페이지로 이동 하는 등의 후처리를 한다.
+6. 접근이 승인되면 자원 접근이 허용된다.
+
+### AccessDecisionManager
+* 인증, 요청, 권한 정보를 이용해 사용자의 자원 접근을 허용/거부 여부를 최종 결정한다.
+* 여러 개의 Voter들을 가질 수 있고, Voter들로 부터 접근 허용, 거부, 보류에 해당하는 각각의 값을 반환받아 결정한다.
+* 최종접근 거부 시 예외가 발생한다.
+* 세가지 접근 결정 방법이 있다.
+  * `AffimativeBased` : Voter중 하나라도 접근 허가를 승인하면 접근허가가 된다. (or연산자와 같음)
+  * `ConsensusBased` : 다수결에 의해 최종 결정을 판단한다.
+  * `UnanimousBased` : 모든 Voter가 만장일치로 접근을 승인해야 접근허가가 된다. (and연산자와 같음)
+
+### AcceessDecisionVoter
+* 판단을 심사하는 인터페이스이다.
+* 각각의 Voter들마다 사용자의 요청이 해당 자원에 접근할 권한이 있는지 판단 후 `AccessDecisionManager`그 값을 에게 반환한다.
+  * `ACCESS_GRANTED` : 접근 허용 (1)
+  * `ACCESS_DENIED` : 접근 거부 (-1)
+  * `ACCESS_ABSTAIN` : 접근 보류 (0)
+
+
+___
+참고
+
+https://docs.spring.io/spring-security/reference/index.html
+
+https://docs.spring.io/spring-security/site/docs/current/api/
+
+https://catsbi.oopy.io/f9b0d83c-4775-47da-9c81-2261851fe0d0
+
+https://mangkyu.tistory.com/76
+
