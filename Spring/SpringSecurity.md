@@ -48,31 +48,6 @@
   * 클릭재킹을 방지하는 X-Frame-Options 통합
 * Servlet API 메서드와의 통합
 
-## Filter
-* 스프링 시큐리티는 Servlet Filter기반으로 인증과 인가에 대한 부분을 처리하고 있다.
-* 클라이언트가 서버로 요청을 하게 되면 먼저 Servlet Filter를 거치게 된다.
-* Filter를 모두 거치고 난 후 `DispatcherServlet`과 같은 Servlet에서 요청이 처리된다.
-
-### FilterChain
-* `FilterChain`은 의미 그대로 여러개의 Filter들이 사슬처럼 연결되어 연쇄적으로 동작한다.
-* 하나의 서블릿은 단일요청을 처리하지만 필터는 체인을 형성하여 실제 요청을 순서대로 수행한다.
-* Filter의 순서는 2가지 방법으로 지정 가능한데, `@Order`애너테이션이나 `Ordered`를 구현하는 방법과, `FilterRegistrationBean`을 이용해 순서를 설정하여 필터를 등록하는 방법이 있다.
-
-
-### DelegatingFilterProxy
-* 우선 사용자가 처음 요청을 하면 서블릿 필터를 거치게 된다.
-* 스프링 시큐리티에서 사용하는 필터들은 스프링 빈으로 등록이 되어있고, 이 빈들은 서블릿 필터에서는 사용이 불가능 하다. (스프링 컨테이너, 스프링 컨테이너)
-* 그래서 이 스프링 시큐리티 필터들을 수행해 줄 필터가 필요한데 그 역할을 `DelegatingFilterProxy`가 한다.
-* `DelegatingFilterproxy`는 서블릿 컨테이너에 등록되어 있다.
-* `DelegatingFilterproxy`에서는 `ApplicationContext`에서 `FilterChainproxy`라는 빈을 찾아 보안처리를 위임한다.
-
-### FilterChainProxy
-* `springSecurityFilterChain`이름으로 생성되는 스프링 빈이다.
-* `DelegatingFilterProxy`로 부터 요청을 위임 받고 실제 보안 처리를 한다.
-* 스프링 시큐리티가 초기화될 때 관리할 필터들을 결정한다. (기본필터 + 설정한 추가필터)
-* 필터를 순서대로 호출해서 사용자 요청을 각각의 필터에 전달한다
-* 마지막 필터까지 예외가 발생하지 않으면 인증에 성공한다.
-
 ## Spring Security 사용 방법
 * Seuciryty 관련 Config 클래스에 `@EnableWebSecurity`를 적용하면 웹 보안 활성화를 위한 여러 클래스들을 import해준다. (SpringSecurityFilterChain에 등록되며, 스프링 시큐리티를 사용)
 * filterChain 메서드를 생성하여 빈에 등록하며, 여기서 인자로 사용되는 `HttpSecurity`클래스가 있고, 이 클래스에서 인증과 관련된 API들이 제공된다.
@@ -100,42 +75,77 @@ public class SecurityConfig {
 
 }
 ```
-## Form Login
-* Form Login은 Spring Security에서 제공하는 인증 방식이다.
-1. Client에서 Get방식으로 특정 URL을 요청했을 때, URL이 인증이 필요한 경우 Server는 로그인 페이지로 리다이렉트 된다.
-2. Client는 로그인 페이지에서 username/password를 입력하여 Post방식으로 인증 시도한다.
-3. Server에서는 username/password가 Server에서는 Session과 토큰을 생성하고 저장한다.
-4. Client에서 접속하려던 URL에 접근 요청 시 세션에 저장된 인증 토큰으로 접근할 수 있게 되며, 세션에 인증토큰이 있는 동안은 해당 사용자가 인증된 사용자라 판단하여 인증을 유지하게 된다.
 
-### Form Login 사용 방법
-```java
-protected void configure(HttpSecurity http) throws Exception {
-    http.formLogin()
-       .loginPage(“/login.html")    // 로그인 페이지
-       .defaultSuccessUrl("/home)   // 로그인 성공 후 이동될 페이지
-       .failureUrl(＂/login.html?error=true“)    // 로그인 실패 후 이동될 페이지
-       .usernameParameter("username")   // 아이디 파라미터명 설정
-       .passwordParameter(“password”)   // 패스워드 파라미터명 설정
-       .loginProcessingUrl(“/login")    // 로그인 Form URL
-       .successHandler(loginSuccessHandler())   // 로그인 성공 후 핸들러
-       .failureHandler(loginFailureHandler())   // 로그인 실패 후 핸들러
-}
-```
+## Filter
+* 스프링 시큐리티는 Servlet Filter기반으로 인증과 인가에 대한 부분을 처리하고 있다.
+* 클라이언트가 서버로 요청을 하게 되면 먼저 Servlet Filter를 거치게 된다.
+* Filter를 모두 거치고 난 후 `DispatcherServlet`과 같은 Servlet에서 요청이 처리된다.
 
-### Form Login 인증 필터 (UsernamePasswordAuthenticationFilter)
-* `UsernamePasswordAuthenticationFilter`는 로그인 인증처리를 담당하고 인증처리에 관련된 요청을 처리하는 필터이다.
-1. 사용자가 요청한 정보를 확인하여 요청정보 URL을 확인함(일치하면 다음단계, 일치하지 않으면 다음 필터로 진행(chain.doFilter))
-2. `Authentication`에서 실제 인증처리를 하게 되며, 로그인 페이지에서 입력한 Username과 Password를 담은 인증 객체(Authentication)를 생성하여 `AuthenticationManager`에 넘긴다. 
-3. `AuthenticationManager`는 내부적으로 `AuthenticationProvider`에게 인증 처리를 위임하게 된다.
-   * 해당 Provider는 인증처리를 담당하는 클래스이다.
-   * 인증에 실패할경우 `AuthenticationException` 예외를 반환하며 `UsernamePasswordAuthenticationFilter`로 돌아가서 예외처리를 수행한다.
-   * 인증에 성공하면 `Authentication` 객체를 생성하여 인증 결과 유저 객체(User)와 유저 권한 정보 객체(Authorities)를 담아 `AuthenticationManager`에게 반환한다
-4. 최종 `Authentication` 객체는 `SecurityContext`에 저장된다.
-5. `SecurityContext`에 저장된 후에는 `SuccessHandler`를 호출하여 실행하게 된다.
-6. 이후 `SecurityContextHolder.getContext().getAuthentication()`를 통해 인증 객체를 꺼내서 쓸 수 있다.
+### FilterChain
+* `FilterChain`은 의미 그대로 여러개의 Filter들이 사슬처럼 연결되어 연쇄적으로 동작한다.
+* 하나의 서블릿은 단일요청을 처리하지만 필터는 체인을 형성하여 실제 요청을 순서대로 수행한다.
+* Filter의 순서는 2가지 방법으로 지정 가능한데, `@Order`애너테이션이나 `Ordered`를 구현하는 방법과, `FilterRegistrationBean`을 이용해 순서를 설정하여 필터를 등록하는 방법이 있다.
 
-## Spring Security의 인증 처리 과정
+
+### DelegatingFilterProxy
+* 우선 사용자가 처음 요청을 하면 서블릿 필터를 거치게 된다.
+* 스프링 시큐리티에서 사용하는 필터들은 스프링 빈으로 등록이 되어있고, 이 빈들은 서블릿 필터에서는 사용이 불가능 하다. (스프링 컨테이너, 스프링 컨테이너)
+* 그래서 이 스프링 시큐리티 필터들을 수행해 줄 필터가 필요한데 그 역할을 `DelegatingFilterProxy`가 한다.
+* `DelegatingFilterproxy`는 서블릿 컨테이너에 등록되어 있다.
+* `DelegatingFilterproxy`에서는 `ApplicationContext`에서 `FilterChainproxy`라는 빈을 찾아 보안처리를 위임한다.
+
+### FilterChainProxy
+* `springSecurityFilterChain`이름으로 생성되는 스프링 빈이다.
+* `DelegatingFilterProxy`로 부터 요청을 위임 받고 실제 보안 처리를 한다.
+* 스프링 시큐리티가 초기화될 때 관리할 필터들을 결정한다. (기본필터 + 설정한 추가필터)
+* 필터를 순서대로 호출해서 사용자 요청을 각각의 필터에 전달한다
+* 마지막 필터까지 예외가 발생하지 않으면 인증에 성공한다.
+
+## Spring Security Filter 종류
+### SecurityContextPersistenceFilter
+* 요청이 발생하면 `SecurityContext` 객체의 생성, 저장 및 조회를 담당하는 필터다.
+
+### CsrfFilter
+* CSFR 공격을 방어하는 FIlter이다.
+* 
+### Logout Filter
+* 로그아웃을 시키는 필터이다.
+* 설정된 로그아웃 URL로 오는 요청을 확인하여 해당 유저를 로그아웃 처리한다.
+
+### UsernamePasswordAuthenticationFilter
+* 설정된 로그인 URL로 오는 요청을 확인하여 유저 인증을 처리한다.
+
+### DefaultLoginPageGeneratingFilter
+* 사용자가 별도의 로그인 페이지를 구현하지 않은 경우, 스프링 시큐리티에서 기본적으로 제공하는 로그인 폼 페이지를 생성해주는 필터이다.
+
+### BasicAuthenticationFilter
+* HttpBasic 인증을 처리하는 필터이다.
+  * HttpBasic이란 Header에 username, password를 실어 보내면 브라우저 혹은 서버가 그 값을 읽어 인증하는 방식이다.
+  * 보통 브라우저 기반 요청이 클라이언트의 요청을 처리할 때 자주 사용한다. (보안에 상당히 취약하므로 Https 권장)
+
+### RememberMeAuthenticationFilter
+* 세션이 만료되고 웹 브라우저가 종료된 후에도 어플리케이션이 사용자를 기억할 수 있도록 하는 필터이다.
+
+### AnonymousAuthenticationFilter
+* 인증객체가 없는 익명의 사용자를 위한 필터로, 특정 자원에 접근 시도시 인증객체를 검사하는데, 만약 인증객체가 없을 경우 익명사용자용 인증 객체를 생성해준다.
+
+### SessionManagementFilter
+* 세션 관련 활동을 수행하는 필터이다.
+  * 세션관리
+  * 동시 세션 제어
+  * 세션 고정 보호
+  * 세션 생성 전략 설정
+
+### ExceptionTranslationFilter
+* 필터체인 내에서 발생하는 예외를 처리하는 필터이다.
+
+### FilterSecurityInterceptor
+* 대부분의 경우 가장 마지막에 사용되며, 리소스에 접근하기 전 인가 처리를 하는 필터이다.
+
+## Spring Security의 인증 처리 과정 (UsernamePasswordAuthenticationFilter)
 ![](./images/SpringSecurity_인증_구조.png)
+
+출처:https://sjh836.tistory.com/165
 1. 사용자로부터 요청을 받으면 `AuthenticationFilter`가 요청을 받아 인증을 진행한다.
 2. `UsernamePasswordAuthenticationFilter`를 통해 username과 password를 `UsernamePasswordAuthenticationToken`객체를 만든다.
 3. 이 만들어진 토큰은 검증을 위해 `AuthenticationManager`의 구현체인 `ProviderManager`로 전달된다.
@@ -204,7 +214,10 @@ protected void configure(HttpSecurity http) throws Exception {
   * `loadUserByUsername` : 유저의 정보를 불러와서 `UserDetails`로 리턴한다.
 * 보통 이 인터페이스를 구현한 구현체에서 UserRepository를 주입받아 DB와 연결하여 처리한다.
 
-## SpringSecurity 인가 처리 과정
+## SpringSecurity 인가 처리 과정 (FilterSecurityInterceptor)
+![](./images/SpringSecurity_인가_구조.png)
+
+출처 : https://catsbi.oopy.io/
 1. 요청 시 `FilterSecurityInterceptor`에서 요청을 받아 인증여부를 확인한다.
 2. 인증 객체가 있으면 `SecurityMetadataSource`는 자원에 접근하기 위해 설정된 권한 정보를 조회해서 전달해준다.
    * 인증 객체 없이 자원에 접근을 시도하게 되면 `AuthenticationException`을 발생시키며, `ExceptionTranslationFilter`에서 해당 예외를 받아 다시 로그인 페이지로 이동 하는 등의 후처리를 한다.
@@ -224,13 +237,57 @@ protected void configure(HttpSecurity http) throws Exception {
   * `ConsensusBased` : 다수결에 의해 최종 결정을 판단한다.
   * `UnanimousBased` : 모든 Voter가 만장일치로 접근을 승인해야 접근허가가 된다. (and연산자와 같음)
 
-### AcceessDecisionVoter
+### AccessDecisionVoter
 * 판단을 심사하는 인터페이스이다.
 * 각각의 Voter들마다 사용자의 요청이 해당 자원에 접근할 권한이 있는지 판단 후 `AccessDecisionManager`그 값을 에게 반환한다.
   * `ACCESS_GRANTED` : 접근 허용 (1)
   * `ACCESS_DENIED` : 접근 거부 (-1)
   * `ACCESS_ABSTAIN` : 접근 보류 (0)
 
+## Logout 처리 과정 (LogoutFilter)
+1. 요청이 Logout URL인지 확인한다 (/logout)
+2. 맞을 경우 `SecurityContext`에서 인증 객체 `Authentication` 객체를 꺼내온다
+3. `SecurityContextLogoutHandler`에서 `SecurityContext`를 삭제하고 해당 인증 객체도 null로 만든다.
+4. `SimpleUrlLogoutSuccessHandler`를 통해 로그인 페이지로 리다이렉트 시킨다.
+
+## Remember Me 인증 과정(RememberMeAuthenticationFilter)
+1. Remember me 쿠키를 가지고 있는 상태에서 요청을 받는다.
+2. `RememberMeAuthenticationFilter`가 동작한다.
+3. `RememberMeService`의 구현체가 동작한다.
+   * `TokenBasedRememberMeService` : 메모리에서 저장한 토큰과 사용자가 가져온 토큰을 비교
+   * `PersistentTokenBasedRememberMeService` : DB에 발급한 토큰과 사용자가 가져온 토큰을 비교
+4. 토큰 쿠키를 추출한다.
+5. 토큰이 존재하는지 검사한다. (없으면 다음 필터 동작 `chain.doFilter()`)
+6. Decode Token으로  토큰의 형식이 규칙에 맞는지 유효성 검사를 한다.
+   * 만약 유효하지 않다면 Exception 발생
+7. 토큰이 일치하는지 검사한다.
+   * 토큰이 일치하지 않으면 Exception 발생
+8. 토큰에 계정이 존재하는지 검사한다.
+   * 없을경우 Exception 발생 
+9. 새로운 `Authentication` 객체를 생성하여 인증처리를 한다.
+10. `AuthenticationManager`에게 전달하여 인증처리를 수행한다.
+
+## 익명사용자 인증 과정(AnonymousAuthenticationFilter)
+1. 특정 자원에 접근 시도시, 인증 객체를 검사한다.
+2. 인증 객체가 없을 경우 익명사용자용 인증 객체를 생성한다.
+   * 만약 session을 발급받은 인증객체가 있는 사용자일 경우 해당 객체를 가지고 다음 필터를 동작한다.
+3. 인증객체는 세션에 저장하지 않는다.
+
+## 세션 제어 과정(SessionManagementFilter)
+1. user1이 로그인요청을 한다.
+   * `ConcurrentSessionControlAuthenticationStrategy`에서 세션 허용 개수를 확인한다.
+   * `ChangeSessionIdAuthenticationStrategy`에서 세션 고정 보호 기능 처리를 한다.
+   * `RegisterSessionAuthenticationStrategy`에서 세션 정보를 등록한다
+   * 인증에 성공한다.
+2. user2의 로그인 요청을 받는다.
+3. `ConcurrentSessionControlAuthenticationStrategy`에서 세션 허용개수를 확인한다.
+4. 만약 허용 세션 개수가 초과 되는 경우
+  * 인증 실패 전략일 경우 SessionAuthenticationException이 발생한다.
+  * 세션 만료 전략일 경우 현재 사용자는 1번 과정과 같이 로그인 처리를 해주고, `session.expireNow()`로 기존 사용자의 세션을 만료시킨다.
+4. user1이 다시 요청을 보낸다.
+5. `ConcurrentSessionFilter`에서 세션 만료를 검사한다.
+   * `ConcurrentSessionFilter`는 `SessionManagermentFilter`에서 `expiredNow()`를 했는지 `isExpired()`를 통해 확인한다.
+6. 세션이 만료된 경우 Logout 처리를 하고 오류페이지를 응답한다.
 
 ___
 참고
@@ -241,5 +298,9 @@ https://docs.spring.io/spring-security/site/docs/current/api/
 
 https://catsbi.oopy.io/f9b0d83c-4775-47da-9c81-2261851fe0d0
 
+https://upsw-p.tistory.com/57
+
 https://mangkyu.tistory.com/76
+
+https://ncucu.me/129?category=796566
 
