@@ -60,7 +60,9 @@
 * 주로 회원 인증이나 정보 전달에 사용된다.
 
 ### JWT 구조
-* JWT는 `.`을 구분자로 나누어지는 세가지 문자열의 조합이다. (Header.Payload.Signature)
+![](./images/JWT_structure.png)
+출처 : https://velog.io/@hwang-eunji
+* JWT는 `.`을 구분자로 나누어지는 세가지 문자열의 조합이다.
 * JSON형태인 각 부분은 Base64Url로 인코딩되어 표현된다.
 * 좌측부터 Header, Payload, Signature를 의미한다.
 * Header에는 JWT에서 사용할 타입과 해시 암호화 알고리즘으로 구성되어 있다.
@@ -114,18 +116,6 @@
     * refresh Token만 만료된 경우, access token을 검증하여 refresh token 재발급
     * 두 토큰 모두 유효한 경우, 정상 처리
 3. 로그아웃을 하면 Access Token과 Refresh Token을 모두 만료시킨다.
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 ___

@@ -107,7 +107,7 @@ public class SecurityConfig {
 
 ### CsrfFilter
 * CSFR 공격을 방어하는 FIlter이다.
-* 
+
 ### Logout Filter
 * 로그아웃을 시키는 필터이다.
 * 설정된 로그아웃 URL로 오는 요청을 확인하여 해당 유저를 로그아웃 처리한다.
@@ -288,6 +288,7 @@ public class SecurityConfig {
 5. `ConcurrentSessionFilter`에서 세션 만료를 검사한다.
    * `ConcurrentSessionFilter`는 `SessionManagermentFilter`에서 `expiredNow()`를 했는지 `isExpired()`를 통해 확인한다.
 6. 세션이 만료된 경우 Logout 처리를 하고 오류페이지를 응답한다.
+
 
 ___
 참고
