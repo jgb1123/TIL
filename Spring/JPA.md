@@ -1,0 +1,179 @@
+# JPA
+
+## 영속성 컨텍스트
+* 엔티티를 영구 저장하는 환경이다.
+* 논리적인 개념으로 눈에 보이진 않으며, 엔티티 매니저를 통해 영속성 컨텍스트에 접근할 수 있다.
+
+### 엔티티의 생명주기
+* 비영속(new/transient) : 영속성 컨텍스트와 전혀 관계가 없는 새로운 상태
+  * 객체를 생성만 한 상태로, 영속성 컨텍스트와 전혀 관계가 없는 상태를 의미한다.
+* 영속(managed) : 영속성 컨텍스트에 관리되는 상태
+  * 객체를 생성하고 저장한 생타로, 영속성 컨텍스트에 의해 관리되는 상태를 의미한다.
+* 준영속(detached) : 영속성 컨텍스트에 저장되었다가 분리된 상태
+  * 영속성 컨텍스트에 저장되었다가 분리된 상태를 의미하며, 준영속 상태의 엔티티는 영속성 컨텍스트가 제공하는 기능을 사용할 수 없다.
+  * `em.detach(entity)` (특정 엔티티만 준영속 상태로), `em.clear()` (영속성 컨텍스트 초기화로 모든 엔티티 준영속 상태), `em.close()` (영속성 컨텍스트 삭제)와 같은 방법들로 준영속 상태로 만들 수 있다.
+* 삭제(removed) : 삭제된 상태
+
+### 영속성 컨텍스트의 장점
+* 1차 캐시
+  * 객체를 저장하고 조회할 경우 해당 데이터를 DB에서 바로 찾아보는 것이 아니라, 1차 캐시에서 조회하게 된다.
+  * 만약 1차캐시에 존재하지 않는 데이터라면 DB에 접근하여 해당 데이터를 1차 캐시에 저장한 뒤 그 값을 반환하게 된다.
+* 동일성 보장
+  * 반복 가능한 읽기(REPEATABLE READ)등급의 트랜잭션 격리 수준을 데이터베이스가 아닌 애플리케이션에서 제공한다
+* 트랜잭션을 지원하는 쓰기 지연
+  * 한번에 한번씩 DB에 SQL문이 전달되지 않고, 명령어들을 쓰기 지연 SQL 저장소에 저장해 놓은 뒤 커밋하는 순간 한번에 데이터베이스에 모든 SQL문을 날린다.
+* 변경 감지
+  * 객체를 수정하게 되면 개발자가 따로 업데이트 함수를 구현하고 호출하지 않아도 자동으로 데이터베이스에 있는 데이터가 갱신된다.
+  * 예를들면, DB에서 엔티티를 조회한 후 해당 데이터를 수정하면 자동으로 데이터베이스에 있는 데이터가 갱신된다.
+* 지연 로딩
+  * 서비스가 커질수록 참조하는 객체가 많아지고, 객체가 가지는 데이터의 양이 많아진다.
+  * DB로부터 참조하는 객체들의 데이터까지 한번에 가져오는 것은 부담이 커진다.
+  * JPA는 참조하는 객체들의 데이터를 가져오는 시점을 정할 수 있는데(Fetch Type), LAZY 타입을 통해 이러한 성능이슈를 줄일 수 있다.
+
+### 플러시
+* 영속성 컨텍스트의 변경 내용을 데이터베이스에 반영하는 것을 의미한다.
+* 플러시가 발생하는 과정
+  1. 변경 감지
+  2. 수정된 엔티티 쓰기 지연 SQL 저장소에 등록
+  3. 쓰기 지연 SQL 저장소의 쿼리를 데이터베이스에 전송(등록, 수정, 삭제 쿼리)
+
+* 영속성 컨텍스트를 플러시 하는 방법
+    1. `em.flush()` : 직접 호출
+    2. 트랜잭션 커밋 : 플러시 자동 호출
+    3. JPQL 쿼리 실행 : 플러시 자동 호출
+
+
+## 엔티티 매핑
+### 객체와 테이블 매핑
+
+#### @Entity
+* @Entity가 붙은 클래스는 JPA가 관리한다.
+* JPA를 사용해서 테이블과 매핑할 클래스는 `@Entity`를 꼭 붙여줘야 한다.
+* 주의 사항
+  * 기본 생성자 필수적이다.(파라미터가 없는 public 또는 protected 생성자)
+  * final 클래스, enum, interface, inner클래스 사용이 불가능하다
+  * 저장할 필드에 final을 사용할 수 없다.
+
+* `@Enitiy` 속성
+  * name : JPA에서 사용할 엔티티 이름을 지정할 수 있다.
+  * 기본값은 클래스 이름을 그대로 사용하며, 같은 클래스 이름이 없으면 가급적 기본값을 사용한다.
+
+#### @Table
+* `@Table`은 엔티티와 매핑할 테이블을 지정할 때 사용한다.
+* `@Table` 속성
+  * name : 매핑할 테이블 이름
+  * catalog : 데이터베이스 catalog 매핑
+  * schema : 데이터베이스 schema 매핑
+  * uniqueConstraints(DDL) : DDL 생성 시 유니크 제약 조건 생성
+
+### 데이터베이스 스키마 자동 생성
+* JPA를 사용하면 DDL(Data Definition Language)을 애플리케이션 실행 시점에 자동으로 생성할 수 있다.
+  * 개발자가 테이블을 먼저 생성하고 객체를 구현할 필요 없이, **객체만 먼저 구현해도 JPA가 알아서 테이블을 만들어 준다.** (테이블 중심 -> 객체 중심)
+  * JPA는 데이터베이스 dialect(방언)을 사용하여 데이터베이스에 맞는 적절한 DDL을 생성한다. (이렇게 생성된 DDL은 개발장비에서만 사용하고, 운영서버에서는 사용하지 않는것을 권장)
+
+#### 데이터베이스 스키마 자동생성 속성(`hibernate.hbm2ddl.auto`)
+* create : 기존 테이블 삭제 후 다시 생성(DROP + CREATE)
+* create-drop : create와 같지만 종료 시점에 테이블 DROP
+* update : 변경분만 반영(운영 DB에는 사용하면 안됨)
+* validate : 엔티티와 테이블이 정상 매핑되었는지만 확인
+* none: 사용하지 않음
+
+#### 주의사항
+* **운영장비에는 절대 create, create-drop, update를 사용하면 안된다.**
+* 개발 초기 단예에는 create 또는 update로 local과 개발서버에 사용한다.
+* 테스트 서버는 update 또는 validate를 사용해야 한다
+* 스테이징과 운영 서버는 validate 또는 none로 사용해야 한다.
+
+#### DDL 생성 기능
+* `Column(nullable = true, length = 10)` 필수고, 10자 초과하면 안됨
+* `Column(unique = true` 유니크 제약조건 추가
+
+### 필드와 컬럼 매핑
+#### @Column : 컬럼 매핑
+* name : 필드와 매핑할 테이블의 컬럼 이름 (기본값은 객체의 필드 이름)
+* insertable, updatable : 등록, 변경 가능 여부 (기본값은 True)
+* nullable : null값의 허용 여부를 설정 (false로 설정하면 DDL 생성 시 not null 제약 조건이 붙음)
+* unique : 한 컬럼에 유니크 제약 조건을 걸 때 사용
+  * `unique`속성 보다는 `@Table`의 `uniqueConstraints` 속성을 주로 사용한다.
+* columnDefinition : 데이터베이스 컬럼 정보를 직접 줄 수 있다.
+* length : 문자 길이 제약 조건 설정 (String 에만 사용하며, 기본값은 255)
+* percision, scale : BigDecimal, BigInteger 타입에서 사용 (소숫점 전체 자릿수와, 소수의 자릿수)
+  * double, float타입에는 적용되지 않고, 아주 큰 숫자나 정밀한 소수를 다루어야 할 때만 사용한다.
+
+#### @Temporal : 날짜 타입 매핑
+
+* value
+  * TemporalType.DATE : 날짜, 데이터베이스 data타입과 매핑
+  * TemporalType.TIME : 시간, 데이터베이스 time 타입과 매핑
+  * TemporalType.TIMESTAMP : 날짜와 시간, 데이터베이스 timestamp 타입과 매핑
+    * LocalDate, LocalDateTime을 사용할 경우 생략 가능하다
+
+#### @Enumerated : enum 타입 매핑
+* value(기본값은 EnumType.ORDINAL)
+    * EnumType.ORDINAL : enum 순서를 데이터베이스에 저장
+    * EnumType.STRING : enum 이름을 데이터베이스에 저장
+        * **기본값인 ORDINAL은 사용하지 않는것이 좋다.**(enum타입에 데이터가 추가되어도 테이블에서는 이것이 반영되지 않기 때문에 문제가 발생 함)
+
+#### @Lob : BLOB, CLOB 매핑
+* 지정할 수 있는 속성이 따로 없다.
+* 매핑하는 필드 타입이 문자면 CLOB 매핑, 나머지는 BLOB 매핑이다.
+  * CLOB : String, char[], java.sql.CLOB
+  * BLOB : byte[] java.sql.BLOB
+#### @Transient : 특정 필드를 컬럼에 매핑하지 않음
+* 데이터베이스에 저장, 조회가 안된다.
+* 주로 메모리상에서만 임시로 어떤 값을 보관하고 싶을 때 사용한다.
+
+### 기본 키 매핑
+* 기본 키 매핑 어노테이션은 `@Id`, `@GeneratedValue`가 있다.
+* 직접 할당의 경우 `@Id`만 사용하면 된다.
+* 자동생성의 경우 `@GeneratedValue`도 붙여주면 된다.
+* `@GeneratedValue`의 `strategy`속성
+  * IDENTITY : 기본 키 생성을 데이터베이스에 위임한다.
+  * SEQUENCE : 데이터베이스 시퀀스 오브젝트를 사용한다.
+  * TABLE : 키 생성용 테이블을 사용하고, 모든 DB에서 사용한다
+  * AUTO : 데이터베이스 방언에 따라 자동으로 지정해준다.
+
+#### IDENTITY
+* IDENTITY는 기본키 생성을 데이터베이스에 위임한다.
+* jpa입장에서 엔티티를 영속상태에 만들기 위해 기본키를 먼저 알야아하고, 그렇기 때문에 `em.persist()` 시점에 쓰기지연을 하지 않고 바로 SQL문을 실행하여 데이터를 등록하고 식별자를 조회한다.
+    * JPA는 보통 트랜잭션 커밋 시점에 INSERT SQL문을 실행한다.
+    * AUTO_INCREMENT는 데이터베이스에 INSERT SQL을 실행한 이후에 ID 값을 알 수 있다.
+* 주로 MySQL, PostgreSQL, SQL Server, DB2에서 사용한다.
+
+#### SEQUENCE
+* SEQUENCE도 엔티티를 영속성 컨텍스트에 등록하기 위해 기본키를 알야아 하며, 그렇기 때문에 `em.persist()` 시점에 시퀀스를 조회하는 SQL문을 실행하여 시퀀스의 nextValue를 받아 영속성 컨텍스트에 등록한다.
+* `@SequenceGenerator`가 필요하다.
+  * name : 식별자 생성기 이름(필수)
+  * sequenceName : 데이터베이스에 등록되어 있는 시퀀스 이름(기본값은 hibernate_sequence)
+  * initialValue : DDL 생성 시에만 사용되며, 시퀀스 DDL을 생성할 때 처음 시작하는 수를 지정(기본값은 1)
+  * allocationSize : 시퀀스 한 번 호출에 증가하는 수
+    * 성능 최적화에 사용되며, 데이터베이스에 시퀀스 값이 하나씩 증가하도록 설정되어 있으면 이 값을 반드시 1로 설정해야 한다.(기본값은 50)
+  * catalog, schema : 데이터베이스 catalog, schema 이름
+* 오라클, PostgreSQL, DB2, H2에서 사용한다.
+
+#### TABLE
+* 키 생성 전용 테이블을 만들어서 데이터베이스 시퀀스를 흉내내는 전략이다.
+  * 장점 : 모든 데이터베이스에 적용 가능
+  * 단점 : 성능
+* `@TableGenerator`가 필요하다
+  * name : 식별자 생성기 이름(필수)
+  * table : 키생성 테이블 명(기본값은 hibernate_sequences)
+  * pkColumnName : 시퀀스 컬럼명(기본값은 sequence_name)
+  * valueColumnName : 시퀀스 값 컬럼명(기본값은 next_val)
+  * pkColumnValue : 키로 사용할 값 이름(기본값은 엔티티 이름)
+  * initialValue : 초기 값, 마지막으로 생성된 값이 기준(기본값은 0)
+  * allocationSize : 시퀀스 한 번 호출에 증가하는 수
+    * 성능 최적화에 사용되며 기본값은 50
+  * catalog, schema : 데이터베이스 catalog, schema 이름
+  * uniqueConstraints : 유니크 제약 조건 지정
+
+#### 권장하는 식별자 전략
+* 기본키 제약조건은 null이 아니며, 유일해야 하고, 변하면 안된다.
+* 위 조건을 항상 만족하는 자연키는 찾기 어려우므로 대체키를 사용하는게 좋다.(주민번호 등도 적절하지 않음)
+* Long type + 대체키 + 키 생성 잔략을 사용하는것이 권장된다.
+
+
+___
+참고
+
+[인프런 김영한님의 자바 ORM 표준 JPA 프로그래밍](https://www.inflearn.com/course/ORM-JPA-Basic/)
