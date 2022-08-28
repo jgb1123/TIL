@@ -1,4 +1,76 @@
 # JPA
+## JPA?
+* 자바 진영의 ORM 기술 표준 인터페이스이다.
+  * 객체는 객체대로 설계를 하고, 관계형 데이터베이스는 관계형 데이터베이스대로 설계를 하면, ORM(Object-Relational Mapping) 프레임워크가 중간에서 매핑을 해준다.
+* JPA가 실제로 동작하는 것이 아니고, 이 인터페이스를 구현한 구현체가 동작을 한다. (대표적으로 Hibernate)
+* 대표적인 개념으로는 연관관계 매핑, 영속성 컨텍스트가 있다.
+### 연관관계 매핑
+* 객체 지향 프로그래밍과 관계형 데이터베이스의 차이점로 개발자가 중간 중간 SQL문을 작성 및 변환을 해야한다.
+* JPA와 같은 ORM 프레임워크는 객체와 관계형 데이터베이스를 매핑해주고 SQL을 대신 작성해준다.
+  * 하지만 객체와 테이블을 정확하게 매핑하는 것이 중요하다.
+### 영속성 컨텍스트
+* 연관관계 매핑이 객체와 테이블의 매핑 정보를 구성하는 부분이라면, 영속성 컨텍스트는 JPA 내부 동작 방식을 이해하기 위해 필요한 부분이다.
+* JPA를 사용하면 객체를 자바 컬렉션에 관리하는 것 처럼 편리하게 데이터베이스에 관리할 수 있다.
+  * 객체를 조회하고 변경만 해도 변경 내용이 데이터베이스에 자동으로 반영된다.
+
+## Spring Data JPA
+* spring-data 프로젝트는 다양한 데이터 관리 솔루션을 동일한 방식의 인터페이스로 사용할 수 있게 해준다.
+* spring-data-jpa는 spring-data의 인터페이스로 JPA를 다룰 수 있게 해주는 프로젝트이다.
+
+### 쿼리 메서드 기능
+#### 메서드 이름으로 쿼리를 생성
+* 메서드 이름으로 쿼리를 생성해주는 기능이다.
+```java
+public interface UserRepository extends Repository<User, Long> {
+  List<User> findByEmailAddressAndLastname(String emailAddress, String lastname);
+}
+```
+```sql
+select u from User u
+where u.emailAddress = ?1
+  and u.lastname = ?2
+```
+* 자세한 사용법은 아래 공식문서 내용들을 참고하면 된다.
+* [Query Creation 공식문서](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#jpa.query-methods.query-creation)
+* [쿼리 메서드 주제 키워드](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#appendix.query.method.subject)
+* [쿼리 메서드 조건자 키워드 및 수정자](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#appendix.query.method.predicate)
+#### 메서드 이름으로 NamedQuery
+* 메서드 이름으로 JPA Named 쿼리를 호출하는 기능이 있다.
+* 쿼리에 이름을 부여해서 사용하는 방법이다.
+* 어노테이션 또는 XML에 쿼리를 정의할 수 있다.
+```java
+@Entity
+@NamedQuery(name = "User.findByEmailAddress",
+        query = "select u from User u where u.emailAddress = ?1")
+public class User {
+}
+```
+* 자세한 사용법은 아래 공식문서를 참고하면 된다.
+* [JPA Named Queiries 공식문서](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#jpa.query-methods.named-queries)
+#### @Query 어노테이션으로 Repository Interface에 쿼리 정의
+* `@Query` 어노테이션을 사용하여 실행할 메서드에 쿼리를 직접 작성할 수 있다. (이름 없는 NamedQuery 같은 느낌)
+```java
+public interface UserRepository extends JpaRepository<User, Long> {
+  @Query("select u from User u where u.emailAddress = ?1")
+  User findByEmailAddress(String emailAddress);
+} 
+```
+* 정적 쿼리의 경우, 메서드 이름으로 쿼리를 생성하는 방법으로 사용하다가, 좀 더 복잡한 쿼리가 필요한 경우 해당 기능을 사용하면 된다.
+  * 복잡한 동적 쿼리의 경우 queryDSL을 사용하면 된다. (추후 공부 예정)
+
+## 장점 및 단점
+### 장점
+* 코딩량이 줄어든다.
+* 도메인 클래스를 중요하게 다룬다.
+* 비즈니스 로직에 대한 이해가 쉬워진다.
+* 더 많은 테스트케이스 작성이 가능하다
+* 유지보수하기 좋다.
+* 데이터베이스를 유연하게 변경 가능하다
+
+### 단점(주의사항)
+* DataBase 설계에 대해 제대로 이해하고 있어야 한다.
+* JPA에 대한 지식이 없는상태에서 사용하면 문제가 발생하기 쉽다.
+* JPA는 학습 곡선이 매우 높다.
 
 ## 영속성 컨텍스트
 * 엔티티를 영구 저장하는 환경이다.
