@@ -373,6 +373,36 @@ public interface UserRepository extends JpaRepository<User, Long> {
 * 이렇게 연관관계가 끊어진 객체를 자동으로 삭제되게 할 수 있는 방법이 있는데, `orphanRemoval=true`이다.
 
 
+## 즉시 로딩과 지연 로딩
+* Member에 FK가 있고 Member와 Team이 다대일로 매핑되어 있다고 예시를 든다.
+* Member에 대한 조회만 필요할 때 Team도 같이 조회하게 되면 아무리 연관관계가 맺어있다고 해도 손해이다.
+* JPA에서는 이러한 문제를 지연로딩 `LAZY`를 사용해 프록시로 조회하는 방법으로 해결한다.
+* 예를 들면 Member와 Team이 `@ManyToOne`으로 다대일로 설정되어 있고 해당 애너테이션에 `FetchType.LAZY`속성을 추가한다.
+  ```java
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "TEAM_ID")
+  private Team team;
+  ```
+  * 위와 같이 멤버클래스에 Team이 `FetchType.LAZY`로 설정되어 있으면 멤버를 조회시 Team은 프록시로 조회한다.
+
+* 즉시 로딩의 경우 속성을 `EAGER`로 설정하면 되고, 조회 시 프록시를 사용하지 않는다. (실무에서는 대부분 지연로딩 사용)
+* `@ManyToOne`, `@OneToOne`은 기본값이 즉시 로딩이고, `@OneToMany`, `@ManyToMany`는 기본값이 지연 로딩이다.
+
+### 즉시 로딩 vs 지연 로딩
+* 실무에서는 한번 조회할 때 다수의 테이블을 조인해서 가지고 오면 성능문제를 일으킨다.
+* 실무에서는 가급적 지연 로딩만 사용한다.
+  * 즉시 로딩을 적용하면 예상하지 못한 SQL이 발생
+  * 즉시 로딩은 JPQL에서 N+1문제를 일으킨다.
+  
+    ```
+    em.createQuery("select m from Member m", Member.class).getResultList()
+    ```
+    * select문에서 Member를 조회하지만, Member안에 Team이 FK로 있기 떄문에 Team도 조회하면서 총 2번의 쿼리가 출력된다.
+
+* `@ManyToOne`, `@OneToOne`은 기본값이 즉시 로딩이고, `@OneToMany`, `@ManyToMany`는 기본값이 지연 로딩이다. 
+
+
+
 ___
 참고
 
