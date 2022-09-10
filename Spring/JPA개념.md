@@ -402,6 +402,119 @@ public interface UserRepository extends JpaRepository<User, Long> {
 * `@ManyToOne`, `@OneToOne`은 기본값이 즉시 로딩이고, `@OneToMany`, `@ManyToMany`는 기본값이 지연 로딩이다. 
 
 
+## JPQL
+* JPQL(Java Persistence Query Language)은 SQL을 추상화한 객체 지향 쿼리 언어다.
+* SQL을 추상화 했기 때문에, 특정 데이터베이스에 의존하지 않는다.
+* 순수 JDBC, MyBatis, SpringJdbcTemplate 으로는 피할 수 없는 SQL작성 반복을 대폭 줄여준다.
+* 매우 복잡한 쿼리를 작성해야 하거나 특정 데이터베이스에 의존적인 기능이 필요하다면 SQL작성이 불가피하지만, 대부분의 쿼리는 JPQL을 통해 해결할 수 있다.
+* JPQL의 가장 큰 장점은 **데이터베이스를 테이블이 아닌 엔티티로 쿼리할 수 있다**는 것이다.
+* 그러나 자바 코드가 아닌 문자열로 작성되기 때문에, 복잡한 동적 쿼리를 작성하기 번거롭다.
+  * 복잡한 동적 쿼리는 QueryDSL이라는 오픈소스 라이브러리를 사용해 해결할 수 있는데, 이 또한 결국 JPQL로 변환된다.
+  * 그리고 JPQL은 데이터베이스 방언에 따라 알맞은 SQL로 변환된다.
+
+### JPQL 규칙
+```sql
+select절
+from절
+where절
+groupby절
+having절
+orderby절
+
+update절
+delete절
+```
+```sql
+select m from Member as m where m.age > 18
+```
+* 엔티티와 속성은 대소문자를 구별한다.
+* JPQL 키워드 (select, from, where 등)는 대소문자를 구별하지 않는다.
+* 별칭(m)은 필수이며, as키워드는 생략 가능하다.
+
+* sql에 있는 COUNT, SUM 등의 집계 함수를 JPQL에서 사용할 수 있다.
+  * 집계 함수는 보통 GROUP BY, HAVING과 같은 집합 기능 및 ORDER BY 같은 정렬 기능과 함께 쓰는 경우가 많다.
+  * 
+
+### TypedQuery, Query
+* TypedQuery는 반환 타입이 명확할 때 사용하고, Query는 반환 타입이 명확하지 않을 때 사용한다.
+* TypedQuery는 결과 조회시 제네릭 타입을 반환하기 때문에 사용하기 편리하므로, 반환 타입이 명확하다면 TypedQuery를 사용하는 것이 좋다.
+  ```sql
+  TypedQuery<Member> query = em.createQuery("select m from Member m", Member.class);
+  ```
+* 아래 예시는 엔티티 대신 필드 두개를 프로젝션 했기 때문에 반환타입을 지정할 수 없다.
+  ```sql
+  Query query = em.createQuery("select m.username, m.age from Member m");
+  ```
+### 프로젝션
+* 프로젝션은 select 절에서 조회할 대상을 지정하는 것이다.
+* select 절에서 sql처럼 DISTINCT 키워드를 통해 중복을 제거할 수 있다.
+* JPQL과 SQL의 DISTINCT는 약간의 차이가 있다.
+
+#### 조회 가능 대상
+* select절에서 조회 가능한 대상은 총 3가지이다.
+
+1. 스칼라 타입
+   * 가장 기본적인 숫자, 문자 등 기본 데이터 타입을 조회할 수 있다.
+     ```java
+     String qlString = "select m.username from Member m"
+     List<String> result = em.createQuery(qlString, String.class).getResultList();
+     ```
+2. 엔티티 타입
+   * 엔티티 자체를 조회할 수 있다. 
+     ```java
+     String qlString = "select m from Member m"
+     List<Member> result = em.createQuery(qlString, Member.class).getResultList();
+     ```
+3. 임베디드 타입
+   * 값 타입 중 하나인 임베디드 타입을 조회할 수 있다.
+     ```java
+     String qlString = "select m.address from Member m"
+     List<Address> result = em.createQuery(qlString, Address.class).getResultList();
+     ```
+
+
+* 아래 예시와 같이 여러 값을 함께 조회하는 경우 받을 수 있는 타입들이 있다.
+  ```sql
+  select m.username, m.age from Member m
+  ```
+  1. Query 타입으로 조회
+     ```java
+     String qlString = "select m.username, m.age from Member m"
+     List result = em.createQuery(qlString).getResultList();
+     ```
+     * 아무런 타입 정보를 알 수 없기 때문에 별로 도움이 되지 않는다.
+  2. Object[] 타입으로 조회
+     ```java
+     String qlString = "select m.username, m.age from Member m"
+     List<Object[]> result = em.createQuery(qlString).getResultList();
+     ```
+     * raw타입 컬렉션 대신 Object[] 타입이라도 주는 것이 좋다.
+  3. new 명령어로 조회
+     ```java
+     String qlString = "select new jpql.jpql.UserDto(m.username, m.age) from Member m"
+     List<MemberDto> result = em.createQuery(qlString, MemberDto.class).getResultList();
+     ```
+     * 조회 결과를 DTO로 바로 받을 수 있다.
+     * DTO 클래스에 컬럼의 타입과 순서가 일치하는 생성자를 만들어야 하며 ,DTO클래스의 패키지 명까지 모두 적어줘야 한다.
+     * 코드가 약간 길어지지만, 여러 값을 조회하는 방법 중에서는 제일 깔끔하다.
+
+### 페이징 API
+* JPQL은 SQL을 추상화했으며, 그 장점이 가장 잘 드러나는 부분중 하나는 페이징 API이다.
+* 특정 데이터베이스들은 페이징 쿼리를 짜기가 매우 번거롭지만, JPQL은 페이징을 매우 쉽게 짤 수 있도록 도와준다.
+* `setFirstResult(int startPosition)` : 조회 시작 위치(0부터 시작)
+* `setMaxResults(int maxResult)` 조회할 데이터 수
+``` java
+String qlString = "select m from Member m order by m.age desc";
+
+List<Member> result = em.createQuery(qlString, Member.class)
+                        .setFirstResult(10)
+                        .setMaxResults(10)
+                        .getResultList(); 
+```
+
+
+
+
 
 ___
 참고
