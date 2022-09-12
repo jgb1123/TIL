@@ -219,7 +219,7 @@ from Member m
 
 ### 단순 CASE식
 * 자바의 switch문처럼 단순하게 값을 직접 비교할 수 있다.
-```java
+```java 
 select
   case t.name
        when 'teamA' then '우승팀'
@@ -240,12 +240,170 @@ select coalesce(m.username,'이름 없는 회원') from Member m
 select nullif(m.username, '관리자') from Member m
 ```
 
-### 기본함수
+## 기본함수
 * JPQL은 다양한 기본 함수들을 제공한다.
 * 문자열을 다룰 때 사용하는 CONCAT, SUBSTRING, TRIM, LOWER, UPPER, LENGTH, LOCATE 함수를 제공한다.
 * 또한 수학 함수인 ABS, SQRT, MOD를 제공한다.
 * 그리고 JPQL은 sql에서는 불가능한 컬렉션을 표현할 수 있기 때문에 추가적으로 컬렉션을 다루는 SIZE, INDEX 함수를 제공한다.
 
+
+## 경로 표현식
+* 모든 객체는 서로 참조를 통해 그래프처럼 연결되어있다. (자바에서 `.`을 통해 연결된 객체로 이동할 수 있음)
+* 엔티티도 객체이기 때문에 마찬가지이고, 엔티티들은 연관관계를 통해 객체 그래프를 이룬다.
+* JPQL에서도 경로 표현식을 통해 객체 그래프를 탐색할 수 있다.
+* 경로 표현식은 자바에서 `.`을 통해 연관된 객체로 이동하듯이 JPQL에서 객체(엔티티) 그래프를 탐색하는 문법이다. (주로 select, where절에서 사용)
+
+### 상태 필드 (state field)
+* 문자열이나 숫자처럼 단순히 값을 저장하는 필드로, 단순 값이기 때문에 더이상 탐색이 불가능하다.
+
+### 단일 값 연관 필드
+* `@OneToOne`, `@ManyToOne`을통해 연관관계를 맺은 필드로, 탐색 결과는 엔티티이다.
+* 탐색결과는 엔티티이기 때문에 추가 탐색이 가능하다. (묵시적 내부 조인이 발생함)
+
+### 컬렉션 값 연관 필드
+* `@OneToMany`, `@ManyToMany` 를 통해 연관관계를 맺은 필드로, 탐색 결과는 컬렉션이다.
+* 탐색결과가 컬렉션이기 때문에 추가 탐색이 불가능하다. (묵시적 내부 조인이 발생함)
+    * 컬렉션을 from절에서 명시적 조인하고, 별칭을 붙이면 추가탐색이 가능 하긴 하지만 권장하지 않는 방법이다.
+
+
+## 묵시적 조인, 명시적 조인
+* 연관된 엔티티를 경로 탐색하면 엔티티, 컬렉션에 관계 없이 묵시적 내부 조인이 발생한다.
+* 묵시적 내부조인은 JPQL에는 조인이 명시되어있지 않지만 SQL에서는 조인이 생기는 것을 의미한다.
+* 연관된 엔티티는 다른 테이블에 저장되어 있기 때문에 당연히 조인을 통해 가져와야 한다.
+* **묵시적 조인은 항상 내부조인이 되는 한계**가 있고, JPQL에 명시되어 있지 않은 조인이 SQL에 생기기 때문에 **쿼리 튜닝이 힘들어진다.**
+* JPQL은 변환되는 SQL과 최대한 모양을 비슷하게 맞춰주는 것이 유지보수하기에 좋다.
+* **묵시적 조인 대신 명시적 조인을 사용하는 것이 좋다.**
+  * 명시적 조인을 사용하면 JPQL이 변환되는 SQL과 모양이 비슷해지며, 외부 조인 또한 가능하다.
+
+```java
+select m.username // 상태 필드
+from Member m
+  join m.team t // 단일 값 연관 필드 명시적 조인
+  join m.orders o // 컬렉션 값 연관 필드 명시적 조인
+where t.name = '팀A'
+
+```
+
+## N+1 문제
+* N+1 문제는 1번의 쿼리 이후 연관된 엔티티 N개의 데이터를 찾기 위해 최대 N번의 추가쿼리가 나가는 문제이다.
+* N+1 문제는 성능에 막대한 불이익을 주기 때문에 반드시 해결해야 한다.
+
+### N+1문제가 발생하는 경우
+1. 다대일 관계를 즉시 로딩으로 설정한 경우 (기본값)
+
+    ```java
+    em.createQuery("select m from Member m").getResultList();
+    ```
+   * JPQL은 SQL 그대로 번역되며, 연관된 엔티티를 고려하지 않는다.
+   * 따라서 위 예시는 Team테이블의 데이터를 가져오지 않는다.
+   * 위 예시는 Member에서 Team을 즉시로딩으로 설정했는데, 문제는 여기서 발생한다.
+   * 처음 쿼리로 10명의 Member가 조회되면, 연관된 Team 프록시를 초기화하기 위해 최대 10번의 추가 쿼리가 발생한다.
+
+
+2. 다대일 관계를 지연 로딩으로 설정한 경우
+    ```java
+    List<Member> members = em.createQuery("select m from Member m", Member.class).getResultList();
+
+    for (Member member : members) {
+    member.getTeam().getName(); // 프록시 초기화
+    } 
+    ```
+    * 위 예시는 Member에서 Team을 지연 로딩으로 설정했기 때문에 Team엔티티는 초기화 되지 않은 프록시가 된다.
+    * 바로 N번의 추가 쿼리가 나가지는 않지만, Member 엔티티들이 Team의 데이터를 요구하면 프록시를 초기화하기 위해 최대 N번의 추가 쿼리가 나가게 된다.
+    * N+1 문제는 즉시 로딩, 지연 로딩 상관 없이 발생한다.
+
+3. 일대다 관계를 지연 로딩으로 설정한 경우 (기본값)
+    ```java
+    Team team = em.createQuery("select t from Team t where t.name = 'team A'", Team.class).getSingleResult();
+
+    for (Member member : team.getMembers()) {
+    member.getUsername(); // 프록시 초기화
+    }
+    ```
+    * N+1 문제는 컬렉션에서도 발생한다.
+    * 일대다 연관관계는 기본값이 지연로딩이기 때문에 만약 Team에 연관된 Member가 10명이라면 프록시 초기화를 위해 10번의 추가 쿼리가 나간다.
+* N+1 문제를 해결하는 방법은 추후 공부 예정이다.
+
+## 페치 조인
+* 페치 조인을 사용하면 연관된 엔티티나 컬렉션을 SQL 한 번으로 조회한다.
+* 연관된 엔티티까지 프록시가 아닌 실제 엔티티로 조회하기 때문에 N+1 문제가 발생하지 않는다.
+* 페치 조인은 SQL의 조인 종류가 아니며, 성능 최적화를 위해 사용하는 JPQL의 기능이다.
+
+### 일반 조인
+* JPQL
+```java
+select m
+from Member m
+join m.team
+```
+* SQL 번역
+```sql
+SELECT m.*
+FROM member m
+INNER JOIN team t ON m.team_id=t.id
+```
+
+* 위와 같이 Member에서 일대다 연관관계를 가지는 Team을 일반 조인 후 번역된 SQL을 보면 연관된 team 테이블의 데이터는 조회하지 않는다.
+
+### 엔티티 페치 조인
+```java
+select m
+from Member m
+join fetch m.team
+```
+* SQL 번역
+```sql
+SELECT m.*, t.*
+FROM member m
+INNER JOIN team t ON m.team_id=t.id
+```
+* 위와 같이 Member에서 다대일 연관관계를 가지는 Team을 페치 조인 후 번역된 SQL을 보면 연관된 team 테이블의 데이터도 함께 조회한다.
+* join 키워드 다음에 fetch 키워드를 넣으면 페치 조인이 된다.
+### 컬렉션 페치 조인
+```java
+select distinct t
+from Team t
+join fetch t.members
+where t.name = 'teamA'
+```
+* SQL 번역
+```sql
+SELECT DISTINCT t.*, m*
+FROM team t
+INNER JOIN member m ON t.id = m.team_id
+WHERE t.name = 'teamA'
+```
+* 위와 같이 Team에서 일대다 연관관계를 가지는 Member를 페치 조인 후 번역된 SQL을 보면 Member 테이블의 데이터도 함께 조회한다.
+* 일대다 관계를 조인하면 데이터가 굉장히 많아지므로, `DISTINCT`를 통해 중복을 제거하는 것이 좋다.
+  * SQL의 `DISTINCT`는 조회된 데이터가 완전히 일치하는 경우 중복을 제거하지만, JPQL의 `DISTINCT`는 여기에 추가로 엔티티 중복도 제거해준다.
+
+### 페치 조인의 한계
+* 페치 조인으로 모든 문제를 해결할 순 없고, 한계가 있다.
+* 페치 조인 대상에 별칭을 줄 때 주의해야 한다.
+  * [관련 좋은 질문](https://www.inflearn.com/questions/15876)
+* 둘 이상의 컬렉션을 페치 조인 할 수 없다.
+  * 컬렉션을 조인하면 데이터가 굉장히 많아지기 때문에 컬렉션 패치 조인은 최대 한 개 까지 가능하다.
+* 컬렉션을 페치 조인하면 페이징 API(`setFirstResult`, `setMaxResults`)를 적용할 수 없다.
+  * 컬렉션을 조인하면 데이터가 굉장히 많아지기 때문에 페이징을 해도 의도한 결과가 나오지 않는다.
+  * 하이버네이트 구현체는 컬렉션을 페치 조인 한 뒤 페이징하면 경고 로그를 남기고 데이터베이스가 아닌 메모리에서 페이징한다.
+  * 성능에 매우 큰 손실이 생길 수 있으므로 **절대 사용하면 안된다.**
+
+## 벌크 연산
+* 벌크 연산은 한 번의 쿼리로 여러 엔티티를 변경하는 것이다.
+* 예를 들어 회원 100명의 나이를 모두 증가시켜야 하는 경우 JPA의 변경감지를 통해 처리하면 총 100번의 UPDATE 쿼리가 필요하다.
+* 벌크 연산을 이용하면 한 번의 쿼리로 해결할 수 있다.
+
+```java
+String qlString = "update Member m " +
+                  "set m.age = m.age + 1";
+
+int resultCount = em.createQuery(qlString).executeUpdate();
+```
+### 벌크 연산의 특징
+* `executeUpdate()`는 영향받은 엔티티 수를 반환한다.
+* JPA 표준에서 UPDATE, DELETE를 지원한다.
+* 하이버네이트에서 INSERT를 지원한다.
+* 영속성 컨텍스트를 무시하고 데이터베이스에 직접 쿼리하기 때문에 벌크 연산을 가장 먼저 실행한 뒤 영속성 컨텍스트를 초기화 해야한다.
 
 
 
