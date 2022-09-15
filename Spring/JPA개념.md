@@ -334,6 +334,47 @@ public interface UserRepository extends JpaRepository<User, Long> {
   * 대상테이블에 외래키를 저장하면, DB의 주 테이블만 조회해서는 안된다. 대상 테이블에서 확인해야(쿼리문 실행) 알 수 있따.
   * 어차피 쿼리문이 실행되므로, 프록시를 만들 필요가 없다. (하이버네이트 구현체의 경우 지연로딩으로 설정해도 항상 즉시로딩 됨)
 
+## 연관관계 편의 메서드
+* 양방향 연관관계를 맺을 땐 양쪽 모두 관계를 맺어주어야 한다.
+* JPA입장에서 보면 연관관계의 주인(외래키가 있는 곳)쪽에만 관계를 맺어주면 정상적으로 양쪽 모두에서 조회가 가능하다.
+* 그러나 객체까지 고려한다면 양쪽 다 관계를 맺어야 한다.
+* 객체의 양방향 연관관계는 양쪽 모두 관계를 맺어주어야 순수한 객체 상태에서도 정상적으로 동작하게 된다.
+* 따라서 양방향 연관관계에서는 양쪽 객체 모두 신경써줘야 하고, **양쪽 모두의 관계를 맺어주는 것을 메서드**로 사용하는 것이 안전하다.
+### 연관관계 편의 메서드 주의사항
+* 연관관계 편의 메서드를 작성해야 할 때 주의해야 할 점이 있다.
+* 아래 예시를 참고하면 되며, 아래 예시는 하나의 Team에 여러 Member가 속할 수 있다고 가정한다.
+```java
+public class Member{
+    
+    ...
+  
+    public void setTeam(Team team){
+        if(this.team != null){  // Member에 기존 Team이 존재한다면
+            this.team.getMembers().remove(this);    // 기존 Team의 Members에서 해당 Member를 제거하여 연관관계를 끊어줌
+        }
+        this.team = team;   // 멤버에 새로운 팀 설정
+        if(!team.getMembers().contains(this)){    // 새로운 Team의 Members에 Member가 속해있지 않으면 
+            team.addMember(this);   // 해당 Team에 Member를 추가해줌
+        }
+    }
+}
+```
+
+```java
+public class Team{
+    
+    ...
+  
+    public void addMember(Member member){
+        this.members.add(member);   // 해당 팀의 Members에 새로운 멤버를 추가해줌
+        if(member.getTeam != this){ // 만약 그 새로운 맴버의 팀이 해당 팀과 다르다면
+            member.setTeam(this);   // 새로운 멤버의 팀은 해당 팀으로 설정
+        }
+    }
+}
+
+```
+
 ## JPA 순환참조
 * 예시로 member는 post와 1:N 관계이고, member를 통해 post를 조회할 수 있고, post를 통해서도 member를 조회할 수 있도록 양방향 관계로 매핑을 한다.
 * 이럴 경우 post Entity를 그대로 반환하게 되면 post가 참조하고있는 member가 조회되고, member가 다시 post를 참조하고 이게 계속 반복된다.
