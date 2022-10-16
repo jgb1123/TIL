@@ -156,3 +156,95 @@
   * 자동 완성시에도 모든 클래스가 나타나는 등 효율적이지 못하다.
   * 접두어를 붙이는 것은 모듈의 재사용 관점에서도 좋지 못하다.
   * 재사용하려면 이름을 바꿔야 한다. (GSDAccountAddrees 대신 Address라고만 해도 충분하다.)
+
+## 함수
+### 작게 만들어라
+* 함수를 만드는 첫 번째 규칙은 '작게'이고, 두 번째 규칙은 '더 작게'이다.
+* if문, else문, while문 등에 들어가는 블록은 한 줄이어야 한다.
+* 주로 거기서 함수를 호출하기 때문에 중첩 구조가 생길 만큼 함수가 커져서는 안된다.
+* 함수에서 들여쓰기 수준은 1~2단을 넘어서면 안된다.
+
+### 한 가지만 해라
+* 함수는 한가지를 해야하며, 그 한가지를 잘해야 하고, 그 한가지만을 해야 한다.
+* 즉 지정된 함수 이름 알에서 추상화 수준이 하나인 단계만 수행해야 한다.
+* 함수를 만드는 큰 이유는 큰 개념을 다음 추상화 수준에서 여러 단계로 나눠 수행하기 위해서 이다.
+* 의미있는 이름으로 다른 함수를 추출할 수 있으면 그 함수는 여러 작업을 하는 것이다.
+* 한 가지 작업만 하는 함수는 섹션으로 나눠지지 않는다.
+
+### 함수 당 추상화 수준은 하나로
+* 한 함수 내에 추상화 수준이 섞여있으면 코드를 읽는 사람이 이해하기 어려워진다.
+* 코드는 위에서 아래로 이야기처럼 읽혀야 좋다.
+  * 위에서 아래로 프로그램을 읽으면 함수 추상화 수준이 한 번에 한 단계씩 낮아진다.
+
+### Switch 문
+* Switch 문은 작게 만들기 어렵다.
+* 함수가 크게 될수도 있고, Switch문을 포함한 함수를 한 가지 일로 추상화 하는게 어려울 수 있다.
+* 본질적으로 switch 문은 N 가지를 처리한다.
+```java
+ public Money calculatePay(Employee e) throws InvalidEmployeeType{
+        switch(e.type){
+        case COMMISIONED:
+            return calculateComissionedPay(e);
+        case HOURLY:
+            return calculateHourlyPay(e);
+        case SALARIED:
+            return calculateSalariedPay(e);
+        default:
+            throw new InvalidEmployeeType(e.type);
+        }
+}
+```
+* 위 예시는 직원 유형에 따라 다른 값을 반환하는 함수이다.
+  * SRP를 잘 따른다.
+  * 하지만 직원 유형이 추가되면 이 함수에도 추가해야 하며, 직원이 수정되면 이 함수도 수정해야 한다.
+  * 즉 OCP를 위반한다.
+```java
+public Money calculatePay(Employee e){
+      return e.calculatePay();
+}
+```
+* 위와 같이 다형성을 이용하면 직원 유형이 추가되고 수정되어도 변경할 사항이 없어진다.
+* 이런 구조를 사용하기 위해 DI나 직원 유형에 따라 직원을 생성해주는 클래스가 필요하다. 
+  ```java
+  public abstract class Employee{
+	public Money calculatePay(); 
+  }
+
+  public interface EmployeeFactory(){
+      public Employee makeEmployee(EmployeeRecord r) throws InvalidEmployeeType
+  }
+
+  public class EmployeeFactoryImpl implements EmployeeFactory{
+      public Employee makeEmployee(EmployeeRecord r) throws InvalidEmployeeType{
+          switch(e.type){
+          case COMMISIONED: 
+              return new CommisionedEmpolyee();
+          case HOURLY: 
+              return new HourlyEmployee();
+          case SALARIED: 
+              return new SalariedEmployee();
+          default:
+              throw new InvalidEmployeeType(e.type);
+          }
+      }
+  } 
+  ```
+    * Switch문은 여전히 사용되지만 딱 한 번의 Switch문이다. (한 번 정도는 참아줄 수 있다.)
+
+### 서술적인 이름을 사용하라
+* 함수의 이름을 읽고나서 예측한 동작과 함수의 동작이 같다면 좋은 코드이다.
+* 길고 서술적인 이름이 짧고 어려운 이름보다 좋다.
+* 길고 서술적인 이름이 길고 서술적인 주석보다 좋다.
+* 함수 이름을 붙일 때, 여러 단어가 쉽게 읽히면서 그 여러 단어들로 함수 기능을 잘 표현할 수 있도록 해야 한다.
+* 또한 이름을 붙일 때는 일관성이 있어야 한다. 모듈 내에서 함수 이름은 같은 문구, 명사, 동사를 사용한다.
+### 함수 인수
+* 함수에서 이상적인 인수 개수는 0개이다.
+* 인수가 늘어날 수록 함수를 읽는 사람은 인수까지 생각해 동작을 예측해야 한다.
+* 따라서 인수의 개수는 적을수록 좋고, 3개 이상의 인수는 피하는게 좋다.
+* 테스트 관점에서도 인수가 많을수록, 인수마다 유효한 값으로 모든 조합을 만들어 테스트 하기 힘들어진다.
+#### 많이 쓰는 단항 형식
+* 인수에 질문을 던지는 경우 `boolean fileExites("MyFile")`
+* 인수를 뭔가로 변환해 결과를 반환하는 경우 `InputStream fileOpne("MyFile")`
+#### 플래그 인수
+* 함수에 플래그인수는 사용하지 않아야 한다.
+* 함수가 여러개의 일을 처리한다고 대놓고 공표하는 것과 같다.
