@@ -157,7 +157,7 @@
   * 접두어를 붙이는 것은 모듈의 재사용 관점에서도 좋지 못하다.
   * 재사용하려면 이름을 바꿔야 한다. (GSDAccountAddrees 대신 Address라고만 해도 충분하다.)
 
-## 함수
+## 3. 함수
 ### 작게 만들어라
 * 함수를 만드는 첫 번째 규칙은 '작게'이고, 두 번째 규칙은 '더 작게'이다.
 * if문, else문, while문 등에 들어가는 블록은 한 줄이어야 한다.
@@ -333,3 +333,116 @@ if(attributeExists("username")){
 * 프로그래밍은 언어 설계의 기술이다.
 * 대가 개발자는 시스템을 구현할 프로그램이 아니라 **풀어갈 이야기**로 여긴다.
 * 함수가 분명하면서 이해하기 쉬운 코드를 작성함으로써 이야기를 풀어가기 쉬워진다.
+
+## 4. 주석
+### 주석은 나쁜 코드를 보완하지 못한다
+* 코드에 주석을 추가하는 일반적인 이유는 코드 품질이 나쁘기 때문이다.
+* 이런 상황에서는 **주석을 다는게 아니라 코드를 정리**해야 한다.
+* 표현력이 풍부하고 깔끔하며 주석이 거의 없는 코드가, 복잡하고 어수선하며 주석이 많이 달린 코드보다 훨씬 좋다.
+
+### 코드의 의도를 표현하라
+* 코드만으로 의도를 설명하기 어려운 경우가 존재한다.
+* 많은 개발자들은 의도를 설명할때 코드를 사용하는 것은 좋은 수단이 아니라고 생각한다.
+* 아래 두 예시를 보면 아래 코드가 더 이해하기 쉽다는 것을 알 수 있다.
+```java
+if ((employee.flags & HOURLY_FLAG) && (employee.age > 65))
+```
+
+```java
+if(employee.isEligibleForFullBenefits())
+```
+* 코드로 대다수 의도를 표현할 수 있고, 많은 경우 주석으로 달려는 설명을 함수로 만들어 표현해도 충분하다.
+
+### 좋은 주석
+* 어떤 주석은 필요하거나 유익하다.
+  * 그래도 **정말로 좋은 주석은 주석을 달지 않을 방법을 찾아내는 것이라는 걸 명심**해야 한다.
+#### 법적인 주석
+* 회사가 정립한 구현 표준에 맞춰 법적인 이유로 특정 주석을 넣으라고 명시한다.
+* 예로, 각 소스파일 첫 머리에 주석으로 들어가는 저작권 정보와 소유권 정보는 필요하면서 타당하다.
+
+#### 정보를 제공하는 주석
+* 때로는 기본적인 정보를 주석으로 제공하면 편리하다.
+```java
+// 테스트 중인 Responder 인스턴스를 반환
+protected abstract Responder responderInstance();
+``` 
+* 위 예시는 유용한 정보를 제공해 준다.
+* 하지만 responderBeingTested라는 함수 명으로 바꾸면 주석이 필요 없어진다.
+
+```java
+// kk:mm:ss EEE, MMM dd, yyyy 형식
+Pattern timeMatcher = Pattern.compile("\\d*:\\d*:\\d* \\w*, \\w* \\d*, \\d*")
+```
+* 위 예시는 정규표현식이 시각과 날짜를 뜻한다고 설명한다.
+* 이 경우도 시각과 날짜를 변환하는 클래스를 만들어 코드를 옮겨주면 더 깔끔하며 주석도 필요 없어진다.
+
+#### 의도를 설명하는 주석
+* 때로는 주석이 구현을 이해하게 도와주는 선을 넘어 결정에 깔린 의도까지 설명한다. 
+* 아래 두 예시는 이러한 의도를 표현해준다.
+```java
+public int compareTo(Object o){
+    if(o instanceof WikiPagePath){
+        ...
+        return compressedName.compareTo(compressedArgumentName);
+    }
+    return 1; // 옳은 유형이므로 정렬순위가 더 높다
+}
+```
+```java
+public void testConcurrentAddWidgets() throws Exception}{
+    ...
+    // 스레드를 대량 생성하는 방법으로 어떻게든 경쟁 조건을 만들려 시도한다.    
+    for (int i = 0; i< 25000; i++){
+        WidgetBuilderThread widgetBuilderThread = 
+            new WidgetBuilderThread(widgetBuilder, text, parent, failFlag);
+        Thread thread = new Thread(widgetBuilderThread);
+        thread.start();
+    }
+    asswertEquals(false, failFlag.get());
+}
+```
+
+#### 의미를 명료하게 밝히는 주석
+* 때로는 모호한 인수나 반환값이 그 의미를 읽기 좋게 표현하면 이해하기 쉬워진다.
+* 인수나 반환값 자체를 명확하게 만들면 더 좋지만, 인수나 반환값이 표준 라이브러리나 변경하지 못하는 코드에 속하면 의미를 명로하게 밝히는 주석이 유용하다.
+* 하지만 그릇된 주석을 달아놓을 위험은 상항히 높고, 주석이 올바른지 검증하기 쉽지 않다.
+* 따라서 이러한 주석을 달 때는 더 나은 방법이 없는지 고민하고 정확히 달아야 한다.
+
+#### 결과를 경고하는 주석
+* 때로는 다른 프로그래머에게 결과를 경고할 목적으로 주석을 사용한다.
+```java
+// 여유 시간이 충분하지 않다면 실행하지 마십시오.
+public void _testWithReallyBigFile(){
+    ...
+}
+```
+* 위 예시는 특정 테스트케이스를 꺼야 하는 이유이다.
+* 요즘은 `@Ignore("실행이 너무 오래걸린다.")`와 같이 애너테이션을 이용한다.
+  * JUnit4가 나오기 전엔 메서드 이름 앞에 `_`를 붙이는 방법이 관례였다.
+* 아래는 더 좋은 예시이다.
+```java
+public static SimpleDataFormat makeStandardHttpDateFormat(){
+    // SimpleDataFormat은 스레드에 안전하지 못하다.
+    // 따라서 각 인스턴스를 독립적으로 생성해야 한다.
+    SimpleDataFormat df = new SimpleDataFormat("EEE, dd MMM  yyyy HH:mm:ss z");
+    df.setTimeZone(TimeZone.getTimeZone("GMT"));
+    return df;
+}
+```
+
+#### TODO 주석
+* 때로는 앞으로 할 일을 `//TODO` 주석으로 남겨두면 편하다.
+* 더 이상 필요 없는 기능을 삭제하라는 알림, 누군가에게 문제를 봐달라는 요청, 더 좋은 이름을 떠올려 달라는 부탁, 앞으로 발생할 이벤트에 맞춰 코드를 고치라는 주의 등에 유용하다.
+  * 하지만 나쁜 코드를 남겨놓는 핑계가 되어서는 안된다.
+* 대부분의 IDE에서는 TODO 주석을 전부 찾아 보여주는 기능을 제공하므로 주석을 잊어버릴 염려도 없다.
+* 그러나 TODO가 남발된 코드는 바람직하지 않으므로, 주기적으로 TODO 주석을 점검해 주석을 없애야 한다.
+
+#### 중요성을 강조하는 주석
+* 자칫 **대수롭지 않다고 여겨질 뭔가의 중요성을 강조**하기 위해 주석을 사용한다.
+
+#### 공개 API에서 Javadocs
+* 설명이 잘 된 공개 API는 유용하고 만족스럽다.
+* 표준 자바 라이브러리에서 사용한 javadocs가 좋은 예다.
+* 공개 API를 구현한다면 반드시 훌륭한 javadocs를 작성한다.
+* 하지만 여느 주석과 마찬가지로, Javadocs 역시 독자를 오도하거나, 잘못 위치하거나, 그릇된 정보를 전달할 가능성이 존재한다는 것을 명심해야 한다.
+
