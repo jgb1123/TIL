@@ -1444,3 +1444,174 @@ public Service getService() {
 * 시간을 들여 보조 코드를 추가하면 오류가 드러날 가능성이 크게 높아진다.
   * 직접 구현해도 괜찮고, 몇 가지 자동화 기술을 사용해도 괜찮다.
   * 초반부터 보조 코드를 고려해야 하며, 쓰레드 코드는 출시하기 전까지 최대한 오랫동안 돌려봐야 한다.
+
+## 14. 점진적인 개선
+### 점진적으로 개선하다
+* 깨끗한 코드를 짜려면 먼저 지저분한 코드를 짠 뒤에 개선해야 한다.
+* 하지만 프로그램을 망치는 가장 좋은 방법 중 하나는 개선이라는 이름 아래 구조를 크게 뒤집는 행위다.
+* 어떤 프로그램은 그저 그런 개선에서 결코 회복하지 못하는데, 개선 전과 똑같이 프로그램을 돌리기가 아주 어렵기 때문이다.
+* 그래서 TDD 기법을 사용해야 한다. 
+  * TDD는 언제 어느때라도 시스템이 돌아가야 한다는 원칙을 따른다.
+  * 따라서 TDD는 시스템을 망가뜨리는 변경을 허용하지 않는다.
+* 변경 전후에 시스템이 똑같이 돌아간다는 사실을 확인하려면 언제든 실행이 가능한 자동화된 테스트 슈트가 필요하다.
+
+### 코드 개선 과정
+* 246p ~ 320p 참고
+
+### 결론
+* 단순히 돌아가는 코드에 만족한느 프로그래머는 전문가 정신이 부족하다.
+* 나쁜 코드보다 더 오랫동안 더 심각하게 개발 프로젝트에 악영향을 미치는 요인도 없다.
+* 물론 나쁜 코드도 깨끗한 코드로 개선할 수 있지만, 비용이 엄청나게 많이 든다.
+  * 코드가 썩어가며 모듈은 서로서로 얽히고 설켜 숨겨진 의존성이 수도 없이 생긴다.
+  * 오래된 의존성을 찾아내 깨려면 상당한 시간과 인내심이 필요하다.
+* 처음부터 코드를 깨끗하게 유지하기란 상대적으로 쉽다.
+  * 오전에 엉망으로 만든 코드를 오후에 정리하기는 어렵지 않다.
+  * 5분전에 엉망으로 만든 코드는 지금 당장 정리하기 아주 쉽다.
+* 코드는 절대로 방치하면 안되고, 언제나 최대한 깔끔하고 단순하게 정리해야 한다.
+ 
+## 15. JUnit 들여다보기
+### JUnit 프레임워크
+* 살펴볼 모듈은 문자열 비교 오류를 파악할 때 유용한 코드인 `ComparisonCompactor`라는 모듈로, 영리하게 짜인 코드이다.
+```java
+package junit.framework;
+
+public class ComparisonCompactor {
+
+    private static final String ELLIPSIS = "...";
+    private static final String DELTA_END = "]";
+    private static final String DELTA_START = "[";
+
+    private int fContextLength;
+    private String fExpected;
+    private String fActual;
+    private int fPrefix;
+    private int fSuffix;
+
+    public ComparisonCompactor(int contextLength, String expected, String actual) {
+        fContextLength = contextLength;
+        fExpected = expected;
+        fActual = actual;
+    }
+
+    public String compact(String message) {
+        if (fExpected == null || fActual == null || areStringsEqual()) {
+            return Assert.format(message, fExpected, fActual);
+        }
+
+        findCommonPrefix();
+        findCommonSuffix();
+        String expected = compactString(fExpected);
+        String actual = compactString(fActual);
+        return Assert.format(message, expected, actual);
+    }
+
+    private String compactString(String source) {
+        String result = DELTA_START + source.substring(fPrefix, source.length() - fSuffix + 1) + DELTA_END;
+        if (fPrefix > 0) {
+            result = computeCommonPrefix() + result;
+        }
+        if (fSuffix > 0) {
+            result = result + computeCommonSuffix();
+        }
+        return result;
+    }
+
+    private void findCommonPrefix() {
+        fPrefix = 0;
+        int end = Math.min(fExpected.length(), fActual.length());
+        for (; fPrefix < end; fPrefix++) {
+            if (fExpected.charAt(fPrefix) != fActual.charAt(fPrefix)) {
+                break;
+            }
+        }
+    }
+
+    private void findCommonSuffix() {
+        int expectedSuffix = fExpected.length() - 1;
+        int actualSuffix = fActual.length() - 1;
+        for (; actualSuffix >= fPrefix && expectedSuffix >= fPrefix; actualSuffix--, expectedSuffix--) {
+            if (fExpected.charAt(expectedSuffix) != fActual.charAt(actualSuffix)) {
+                break;
+            }
+        }
+        fSuffix = fExpected.length() - expectedSuffix;
+    }
+
+    private String computeCommonPrefix() {
+        return (fPrefix > fContextLength ? ELLIPSIS : "") + fExpected.substring(Math.max(0, fPrefix - fContextLength), fPrefix);
+    }
+
+    private String computeCommonSuffix() {
+        int end = Math.min(fExpected.length() - fSuffix + 1 + fContextLength, fExpected.length());
+        return fExpected.substring(fExpected.length() - fSuffix + 1, end) + (fExpected.length() - fSuffix + 1 < fExpected.length() - fContextLength ? ELLIPSIS : "");
+    }
+
+    private boolean areStringsEqual() {
+        return fExpected.equals(fActual);
+    }
+}
+```
+* 저자들이 모듈을 아주 좋은 상태로 남겨두었지만 보이스카우트 규칙에 따르면 우리는 처음 왔을 때보다 더 깨끗하게 해놓고 떠나야 한다.
+
+### 접두어 f 제거를 모두 제거하자
+```java
+private int contextLength;
+private String expected;
+private String actual;
+private int prefix;
+private int suffix;
+```
+
+### compact 함수 시작부에 캡슐화되지 않은 조건문이 보인다.
+* 의도를 명확히 표현하려면 조건문을 캡슐화해야 한다.
+* 따라서 조건문을 메서드로 뽑아내 적절한 이름을 붙인다.
+```java
+public String compact(String message) {
+    if (shouldNotCompact) {
+        return Assert.format(message, expected, actual);
+    }
+
+    findCommonPrefix();
+    findCommonSuffix();
+    String expected = compactString(expected);
+    String actual = compactString(actual);
+    return Assert.format(message, expected, actual);
+}
+
+private boolean shouldNotCompact() {
+    return expected == null || actual == null || areStringsEqual();
+}
+```
+
+### 이름은 명확하게 붙이자
+* 함수에 이미 expected라는 지역 변수가 있는데 this.expected와 this.actual은 거슬린다. (fExpected에서 f를 빼버리는 바람에 생긴 결과)
+* 함수에서 멤버 변수와 이름이 똑같은 변수를 사용하는 이유는 이름을 명확하게 붙이지 않아서이다.
+* 따라서 이름은 명확하게 붙인다.
+```java
+String compactExpected = compactString(expected);
+String compactActual = compactString(actual);
+```
+
+### 부정문은 긍정문보다 이해하기 약간 더 어렵다. 부정문을 긍정문으로 표현하자
+```java
+public String compact(String message) {
+    if (canBeCompacted()){
+        findCommonPrefix();
+        findCommonSuffix();
+        String compactExpected = compactString(expected);
+        String compactActual = compactString(actual);
+        return Assert.format(message, compactExpected, compactActual);
+    } else {
+        return Assert.format(message, expected, actual);
+    }
+}
+
+private boolean canBeCompacted() {
+    return expected != null && actual != null && !areStringsEqual();
+}
+```
+
+### 함수의 이름으로 명확하게 설명하자
+* 문자열을 압축하는 함수지만, canBeCompacted가 false면 압축하지 않는다.
+* 게다가 함수는 단순히 압축된 문자열이 아니라 형식이 갖춰진 문자열을 반환한다.
+* 따라서 formatCompatedComparison이라는 이름이 적합하다.
