@@ -100,3 +100,37 @@
 * `chmod 700 ~/.ssh/config` config 파일 권한 변경
 * `ssh config에 등록한 서비스 명` 접속
   * yes를 누르면 EC2에 접속이 성공한다.
+
+## 아마존 리눅스 1 서버 생성시 설정
+* 자바 기반의 웹 애플리케이션이 작동해야 하는 서버들이 필수로 해야하는 설정들이 있다.
+### 자바 버전 변경
+* 리눅스 1의 경우 기본 자바 버전이 7이기 때문에, 예시로 만약 자바 8을 쓴다면 아래와같은 명령어를 실행해야 한다.
+  * `sudo yum install -y java-1.8.0-openjdk-devel.x86_64` 자바 8버전 설치
+  * `sudo /usr/sbin/aternatives --config java` 인스턴스의 자바 버전 변경 (명령어 입력 후 버전 선택)
+  * `sudo yum remove java-1.7.0-openjdk` 기존 자바 7 삭제
+  * `java -version` 자바 버전 확인
+
+### 타임존 변경
+* EC2 서버의 기본 타임존은 UTC이기 때문에 한국시간(KST)로 변경해야 한다.
+  * `sudo rm /etc/localtime`
+  * `sudo ln -s /usr/share/zoneinfo/Asia/Seoul /etc/localtime`
+  * `date` 타임존 확인
+
+### Hostname 변경
+* 여러 서버를 관리 중일 경우, IP만으로 어떤 서비스의 서버인지 확인이 어렵다.
+* 따라서 각 서버가 어느 서비스인지 표현하기 위해 HOSTNAME을 변경해야 한다.
+  * `sudo vim /etc/sysconfig/network`
+  * 화면에 나오는 항목 중 HOSTNAME으로 되어있는 부분을 원하는 서비스명으로 변경
+  * `sudo reboot` 서버 재부팅
+* 호스트 주소를 찾을 때 가장 먼저 검색해 보는 /etc/hosts에 변경한 hostname을 등록해야 한다.
+  * `sudo vim /etc/hosts`
+  * 화면에 `127.0.0.1 등록한HOSTNAME` 를통해 등록
+  * `:wq` 저장 종료
+  * `curl 등록한 호스트이름` 등록 확인
+    * 잘못 등록되었으면 찾을 수 없는 주소라는 에러가 발생
+    * 잘 등록되었으면 80포트로 접근이 안된다는 에러가 발생(호스트 이름으로 실행은 잘 되었음을 의미)
+
+___
+참고
+
+이동욱, 스프링 부트와 AWS로 혼자 구현하는 웹 서비스
