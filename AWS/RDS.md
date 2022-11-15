@@ -66,3 +66,39 @@
 * 즉시 적용을 할 수도 있고, 예약시간을 걸어두어 새벽 시간대에 진행할 수도 있다.
 * 만약 파라미터 그룹이 제대로 반영되지 않았을 경우에는 데이터베이스를 재부팅하면 된다.
 
+## 로컬 PC에서 RDS 접속
+* 로컬 PC에서 RDS로 접근하기 위해서 RDS의 보안 그룹에 본인 PC의 IP를 추가해야 한다.
+* RDS 세부정보 페이지에서 보안그룹으로 들어가서, EC2에 사용된 보안 그룹의 그룹 ID를 복사한다.
+* 해당 그룹 ID와 로컬 PC의 IP를 RDS 보안그룹의 인바운드로 추가한다.
+  * 인바운드 규칙 유형에서 MYSQ/Aurora를 선택하면 자동으로 3306포트가 선택된다.
+  * 현재 내 PC의 IP를 등록하고, EC2의 보안 그룹도 추가한다.
+    * EC2와 RDS간에 접근이 가능해지며, EC2의 경우 2대 이상이 될 수도 있는데 매번 IP를 등록할 수 없으니 보편적으로 이렇게 그룹간에 연동을 진행한다.
+
+### 인텔리제이 Database 플러그인
+* 이 플러그인은 인텔리제이 공식 플러그인은 아니고, 유료 버전을 사용하면 강력한 기능의 데이터베이스 기능을 사용할 수 있따.
+* 인텔리제이에서 database 플러그인을 검색 후 설치한다.
+* 인텔리제이 재 시작 후 Action 검색(Ctrl + Shift + a)으로 Database Browser를 실행한다.
+* 생성한 RDS의 접속 정보를 차례로 등록한다.
+* Test Connection을 클릭해 연결 테스트를 해보고, Connection Successful이 나오면 최종 적용을 한다.
+* Open SQL Console -> New SQL Console을 통해 콘솔창을 연다.
+* `use AWS RDS의 웹 콘솔에서 지정한 데이터베이스명` SQL을 실행한다.
+* Execute Statement버튼을 클릭했을때, SQL statement executed successfully 메시지가 떴으면 쿼리가 정상적으로 실행된 것이다.
+* `show variables like 'c%';` 현재의 character_set, collation 설정 확인
+  * character_set_database, collation_connection 2가지 항목은 latin1로 되어있을 수 있다.
+  * 이 2개의 항목은 MariaDB에서만 RDS 파라미터 그룹으로는 변경이 안되어 직접 변경해야 한다.
+    * `ALTER DATABASE 데이터베이스명`
+    * `CHARACTER SET = 'utf8mb4`
+    * `CLLATE = 'utf8mb4_general_ci';`
+* `select @@time_zone, now();` 타임존 확인
+* 테스트용 테이블을 생성해서 한글 데이터도 잘 등록되는지 확인(웬만하면 테이블은 모든 설정이 끝난 후에 생성 하는게 좋음) 
+
+### EC2에서 RDS 접근 확인
+* `sudo yum install mysql` MySQL 접근 테스트를 위해 MySQL CLI 설치
+* `mysql -u 계정 -p -h Host주소` 로컬에서 접근하듯이 계정, 비밀번호, 호스트 주소를 사용해 RDS에 접속
+* 패스워드를 입력하라는 메시지가 나오면 패스워드까지 입력하면 되며, EC2에서 RDS로 접속되는 것을 확인할 수 있다.
+* `show databases;` 데이터베이스 목록 확인
+
+___
+참고
+
+이동욱, 스프링 부트와 AWS로 혼자 구현하는 웹 서비스
