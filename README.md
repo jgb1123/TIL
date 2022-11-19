@@ -6,6 +6,10 @@
 * [AWS](https://github.com/jgb1123/TIL/blob/main/AWS/AWS.md)
 * [Docker](https://github.com/jgb1123/TIL/blob/main/AWS/Docker.md)
 * [Deployment Automation](https://github.com/jgb1123/TIL/blob/main/AWS/DeploymentAutomation.md)
+* [EC2](https://github.com/jgb1123/TIL/blob/main/AWS/EC2.md)
+* [RDS](https://github.com/jgb1123/TIL/blob/main/AWS/RDS.md)
+* [배포](https://github.com/jgb1123/TIL/blob/main/AWS/%EB%B0%B0%ED%8F%AC.md)
+* [CI&CD](https://github.com/jgb1123/TIL/blob/main/AWS/CI%26CD.md)
 
 ## Security
 * [JWT](https://github.com/jgb1123/TIL/blob/main/Security/JWT.md)
