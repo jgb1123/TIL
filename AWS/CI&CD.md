@@ -49,11 +49,63 @@
 * 이름만 보면 CI만 된다고 생각할 수 있지만, CD도 가능하다.
 * 이 클라우드 서비스는 유료이거나 제한적 무료이다. (가볍게는 무료로 이용할 수 있지만 상업용으로 넘어가면 이용료 발생)
 
+### 그 외 CI/CD 툴(Github Actions)
+* 설치형과 클라우드형이 아닌 새로운 형태의 CI/CD 서비스가 있다.
+* Github이나 BitBucket, Gitlab 등에서 자체적으로 제공하는 기능이다.
+  * 그중 많이쓰이는 것은 Github Actions이며, GitLab에는 CI/CD, BitBucket에는 Pipelines가 있다.
+* Github에서 자신의 프로젝트가 있는 Repository에 들어가면 상단에 Actions라는 탭이 있다.
+* 여기서 각 언어별로, AWS나 Azure 등의 배포처별로 소스코드를 빌드하고 테스트하고 배포 등을 할 수 있는 워크플로우의 다양한 템플릿이 있다.
+  * 필요한 것들을 선택하여 동작을 만들어도 되고, 직접 yml파일로 작성해도 되고, 다른 사용자들이 작성하여 마켓플레이스에 올려놓은 워크플로우들을 다운로드하여 사용할 수 있다.
+* Github에 push하는 등 지정한 이벤트가 발생하면 Github에서 제공하는 클라우드 컨테이너 공간에서 빌드, 테스트, 보고, 배포 등이 진행된다.
+* 보통 이 서비스들은 작업의 총 시간을 기준으로 일정 시간까지는 무료이며, 그 이상은 유로 등의 가격 책정이 된다. (상업용은 돈을 지불해야 함)
+* 이러한 Git 저장소 서비스들 이외에 AWS에서 자체적으로 제공하는 CodePipeline 같은 것도 있고, 정적 사이트를 github등에 올리면 바로 자신의 서버로 배포해주는 Netlify나 Vercel같은 배포 서비스도 있다.
+
+## Travis CI
+* Travis CI는 깃허브에서 제공하는 무료 CI 서비스이다.
+
+### Travis CI 연동
+#### Travis 웹서비스 설정
+* Travis CI 공식 홈페이지에서 깃허브 계정으로 로그인 한 뒤 계정명->settings로 들어간다.
+* 설정 페이지 아래쪽에 깃허브 저장소 검색창이 있꼬, 여기서 저장소 이름을 입력해서 찾은 다음 오른쪽의 상태바를 활성화시킨다.
+* 활성화한 저장소를 클릭하면 저장서 빌드 히스토리 페이지로 이동하게 된다.
+* 상세한 설정은 프로젝트의 yml파일로 진행한다.
+#### 프로젝트 설정
+* Travis CI의 상세한 설정은 프로젝트에 존재하는 .travis.yml 파일로 할 수 있다.
+* 프로젝트의 build.gradle과 같은 위치에 .travis.yml 파일을 생성한 후 아래와 같은 코드를 추가한다.
+  ```yaml
+  language: java
+  jdk:
+    - openjdk8
+  branches:
+    only:
+      - master
+  # Travis CI 서버의 Home
+  cache:
+    directories:
+      - '$HOME/.m2/repository'
+      - '$HOME/.gradle'
+  script: "./gradlew clean build"
+  
+  # CI 실행 완료 시 메일로 알람
+  notifications:
+    email:
+      recipients:
+        - 알림을 받을 메일
+  ```
+* 그 다음 master 브랜치에 커밋과 푸시를 하고, Travis CI 저장소 페이지를 확인해본다.
+  * 빌드가 성공한 것이 확인되면 .travis.yml파일에 등록한 이메일을 확인해본다.
+
+### Travis CI와 AWS S3 연동하기
+#### S3?
+* S3는 AWS에서 제공하는 일종의 파일 서버이다.
+* 이미지 파일을 비롯한 정적 파일들을 관리하거나 배포 파일들을 관리하는 등의 기능을 지원한다.
+  * 보통 이미지 업로드를 구현한다면 S3를 이용하여 구현하는 경우가 많다.
+
+
 
 ___
 참고
 
 이동욱, 스프링 부트와 AWS로 혼자 구현하는 웹 서비스
 
-https://ssonny.tistory.com/entry/CICD%EB%9E%80-%EB%AC%B4%EC%97%87%EC%9D%B8%EA%B0%80
-
+https://www.youtube.com/watch?v=UbI0Q_9epDM
