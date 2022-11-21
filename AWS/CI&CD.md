@@ -100,6 +100,61 @@
 * S3는 AWS에서 제공하는 일종의 파일 서버이다.
 * 이미지 파일을 비롯한 정적 파일들을 관리하거나 배포 파일들을 관리하는 등의 기능을 지원한다.
   * 보통 이미지 업로드를 구현한다면 S3를 이용하여 구현하는 경우가 많다.
+* 실제 배포는 AWS CodeDeploy라는 서비스를 이용하지만, S3연동이 필요한 이유는 Jar 파일을 전달하기 위해서이다.
+  * CodeDeploy는 저장 기능이 없으므로, Travis CI가 빌드한 결과물을 받아서 CodeDeploy가 가져갈 수 있도록 보관할 수 있는 공간이 필요한데, 보통 이럴 때 AWS S3를 이용한다.
+  * CodeDeploy가 빌드도 하고 배포도 할 수 있지만, CodeDeploy에서 모든 것을 하게 될 땐 항상 빌드를 하게 되므로 확장성이 많이 떨어진다. (빌드와 배포를 분리하는게 좋음)
+
+#### AWS Key 발급
+* 일반적으로 AWS 서비스에 외부 서비스가 접근할 수 없기 때문에, 접근 가능한 권한을 가진 Key를 생성해서 사용해야 한다.
+* AWS에서는 이러한 인증과 관련된 기능을 제공하는 서비스인 IAM(Identity and Access Management)이 있다.
+* IAM은 AWS에서 제공하는 서비스의 접근 방식과 권한을 관리한다.
+* IAM을 통해 Travis CI가 AWS의 S3와 CodeDeploy에 접근할 수 있도록 해야 한다.
+* AWS 웹 콘솔에서 IAM으로 이동하고, 사용자 -> 사용자 추가 버튼을 클릭한다.
+* 생성할 사용자의 이름과 액세스 유형을 선택하는데, 액세스 유형은 프로그래밍 방식 액세스이다.
+* 권한 설정 방식은 3개 중 기존 정책 직접 연결을 선택한다.
+* s3full로 검색하여 체크하고 다음 권한으로 CodeDeployFull을 검색하여 체크한다.
+  * 실무에서는 권한도 S3와 CodeDeploy를 분리해서 관리하기도 한다.
+* 태그는 Name 값을 지정하는데 본인이 인지 기능한 정도의 이름으로 만든다.
+* 마지막으로 본인이 생성한 권한 설정 항목을 확인하고, 생성이 완료되면 액세스 키와 비밀 액세스 키가 생성된다. (Travis CI에서 사용될 키)
+
+#### Travis CI에 키 등록
+* Travis CI의 설정 화면으로 이동한다.
+* 설정 항목 중 Environment Variables에서, AWS_ACCESS_KEY와 AWS_SECRET_KET를 변수로 해서 IAM 사용자에게 발급받은 키 값들을 등록한다.
+* 여기에 등록된 값들은 이제 .travis.yml에서 $AWS_ACCESS_KEY, $AWS_SECRET_KEY라는 이름으로 사용할 수 있다.
+
+#### S3 버킷 생성
+* Travis CI에서 생성된 Build 파일을 저장하도록 구성하며, S3에 저장된 Build 파일은 이후 AWS의 CodeDeploy에서 배포할 파일로 가져가도록 구성한다.
+* AWS에서 S3로 이동하여 버킷을 생성하는데, 버킷 명은 배포할 Zip파일이 모여있는 장소임을 의미하도록 짓는게 좋다.
+* 버전관리는 별 다른 설정 할 것 없이 넘어가도 된다.
+* 버킷의 보안과 권한 설정 부분에서 퍼블릭 액세스는 모두 차단을 한다.
+  * 실제 서비스에서 할 때는 Jar파일이 퍼블릭일 경우 누구나 내려받을 수 있어 코드나 설정값, 주요 키값들이 모두 탈취될수 있다.
+  * 또한 퍼블릭이 아니더라도 IAM 사용자로 발급받은 키를 사용하니 접근이 가능하다.
+
+#### .travis.yml 추가
+* Travis CI에서 빌드하여 만든 Jar 파일을 S3에 올릴 수 있도록 .travis.yml에 코드를 추가한다.
+```yaml
+...
+before_deploy:
+  - zip -r freelec-springboot2-webservice *
+  - mkdir -p deploy
+  - mv freelec-springboot2-webservice.zip deploy/freelec-springboot2-webservice.zip
+
+deploy:
+  - provider: s3
+    access_key_id: $AWS_ACCESS_KEY # Travis repo settings에 설정된 값
+    secret_access_key: $AWS_SECRET_KEY # Travis repo settings에 설정된 값
+    bucket: freelec-springboot-build # S3 버킷
+    region: ap-northeast-2
+    skip_cleanup: true
+    acl: private # zip 파일 접근을 private으로
+    local_dir: deploy # before_deploy에서 생성한 디렉토리
+    wait-until-deployed: true
+...
+```
+* 설정이 다 되고 깃허브로 PUSH하면, Travis CI에서 자동으로 빌드가 진행되는 것을 확인하고 모든 빌드가 성공하는지 확인한다.
+* S3버킷을 가보면 업로드가 성공한 것을 확인할 수 있다.
+
+#### Travis CI와 AWS S3, CodeDeploy 연동하기
 
 
 
