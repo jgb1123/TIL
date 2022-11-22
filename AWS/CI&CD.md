@@ -154,8 +154,47 @@ deploy:
 * 설정이 다 되고 깃허브로 PUSH하면, Travis CI에서 자동으로 빌드가 진행되는 것을 확인하고 모든 빌드가 성공하는지 확인한다.
 * S3버킷을 가보면 업로드가 성공한 것을 확인할 수 있다.
 
-#### Travis CI와 AWS S3, CodeDeploy 연동하기
+### Travis CI와 AWS S3, CodeDeploy 연동하기
+#### EC2에 IAM 추가하기
+* IAM에서 역할 -> 역할 만들기를 클릭한다.
+  * EC2에서 사용할 것 이기 때문에 사용자가 아닌 역할로 처리한다.
+* 서비스 선택에서는 AWS 서비스 -> EC2를 선택한다.
+* 정책에선 검색하여 AmazonEC2RoleforAWSCodeDeploy를 선택한다.
+* 태그는 본인이 원하는 이름으로 지으면 된다.
+* 역할의 이름을 등록하고, 나머지 등록 정보를 확인한다.
+* EC2 인스턴스 목록으로 이동 후 본인의 인스턴스를 오른쪽 버튼으로 인스턴스 설정->IAM 역할 연결/바꾸기를 클릭한다.
+* 방금 생성한 역할을 선택하고, 선택이 완료되면 해당 EC2 인스턴스를 재부팅한다.
+  * 재부팅을 해야만 역할이 정상적으로 적용된다.
 
+#### CodeDeploy 에이전트 설치
+* EC에 접속한다.
+* `aws s3 cp s3://aws-codedeploy-ap-northeast-2/latest/install . --region ap -northeast-2`
+* `chmod +x ./install && sudo ./install auto` install 파일에 실행 권한이 없으니 실행권한을 추가하고 install파일로 설치를 진행한다. (만약 설치가 안되면 ruby를 설치하면 됨)
+* `sudo service codedeploy-agent status` Agent가 정상적으로 실행되고 있는지 상태 검사
+* `The AWS CodeDeploy agent is running as PID xxx`라고 출력되면 정상이다.
+
+#### CodeDeploy를 위한 권한 설정
+* CodeDeploy에서 EC2에 접근하려면 역시 권한이 필요하며, AWS의 서비스이니 IAM 역할을 생성한다.
+* 서비스는 AWS 서비스 -> CodeDeploy를 선택한다.
+* CodeDeploy는 권한이 하나뿐이라 선택 없이 넘어가면 된다.
+* 태그는 본인이 원하는 이름으로 지으면 된다.
+* CodeDeploy를 위한 역할 이름과 선택 항목들을 확인하고 생성 완료를 한다.
+
+#### CodeDeploy 생성
+* CodeDeploy는 AWS의 배포 삼형 중 하나이다.
+  * Code Commit : 깃허브와 같은 코드 저장소의 역할을 하지만, 대부분 깃허브를 사용한다.
+  * Code Build : Travis CI와 마찬가지로 빌드용 서비스이며, 멀티 모듈을 배포해야 하는 경우 사용 해볼만 하지만 규모가 있는 서비스에서는 대부분 젠킨스/팀시티 등을 이용한다.
+  * CodeDeploy : AWS의 배포 서비스로 CodeDeploy는 대체재가 없다.
+* CodeDeploy 서비스로 이동해 애플리케이션 생성을 클릭한다.
+* 생성할 CodeDeploy의 이름과 컴퓨팅 플랫폼을 선택하는데, 컴퓨팅 플랫폼은 EC2/온프레미스를 선택하면 된다.
+* 생성이 완료되면 배포 그룹을 생성하라는 메시지를 볼 수 있고, 화면 중앙의 배포 그룹 생성을 클릭한다.
+* 배포 그룹 이름과 서비스 역할을 등록하는데, 서비스 역할은 좀 전에 생성한 CodeDeploy용 IAM 역할을 선택한다.
+* 배포 유형에서는 현재 위치를 선택하고, 만약 배포할 서비스가 2대 이상이라면 블루/그린을 선택하면 된다.
+* 환경 구성에서는 Amazon EC2 인스턴스에 체크한다.
+* 마지막으로 배포 구성은 CodeDeployDefault.AllAtOnce를 선택하고 로드 밸런싱은 체크를 해제한다.
+  * 배포 구성의 경우, 지금은 1대 서버로 실습중이기 때문에 전체 배포하는 옵션으로 선택했다.
+
+#### Travis CI, S3, CodeDeploy 연동
 
 
 ___
