@@ -1,4 +1,4 @@
-#CI/CD
+# CI/CD
 
 ## CI/CD?
 * 코드 버전 관리를 하는 VCS 시스템(Git, SVN 등)에 PUSH가 되면 자동으로 테스트와 빌드가 수행되어 안정적인 배포파일을 만드는 과정을 CI(Continuous Integration)라고 한다.
@@ -195,6 +195,121 @@ deploy:
   * 배포 구성의 경우, 지금은 1대 서버로 실습중이기 때문에 전체 배포하는 옵션으로 선택했다.
 
 #### Travis CI, S3, CodeDeploy 연동
+* `mkdir ~/app/step2 && mkdir ~/app/step2/zip`S3에서 넘겨줄 zip 파일을 저장할 디렉토리를 만든다.
+* Travis CI의 Build가 끝나면 S3에 zip파일이 전송되고, 이 zip 파일은 /home/ec2-user/app/step2/zip로 복사되어 압축이 풀어질 것이다.
+* AWS CodeDeploy의 설정은 appspec.yml로 진행한다.
+```yaml
+version: 0.0  # CodeDeploy의 버전으로, 프로젝트 버전이 아니므로 0.0외에 다른 버전을 사용하면 오류가 발생
+os: linux
+files:
+  - source: / # CodeDeploy에서 전달해 준 파일 중 destination으로 이동시킬 대상을 지정하는데, 루트경로(/)를 지정하면 전체 파일을 의미
+    destination: /home/ec2-user/app/step2/zip/  # source에서 지정된 파일을 받을 위치로, 이후 Jar를 실행하는 등은 destination에서 옮긴 파일들로 진행 됨
+    overwrite: yes  # 기존에 파일들이 있으면 덮어쓸지를 결정
+```
+
+* travis.yml에도 CodeDeploy 내용을 추가한다.
+```yaml
+deploy:
+  ...
+  
+  -provider: codedeploy
+   access_key_id: $AWS_ACCESS_KEY # travis repo settings에 설정된 값
+   secret_access_key: $AWS_SECRET_KEY # travis repo settings에 설정된 값
+   
+   bucket: freelec-springboot-build # S3 버킷
+   key: freelec-springboot2-webservice.zip # 빌드 파일을 압축해서 전달
+   
+   bundle_type: zip # 압축 확장자
+   application: freelec-springboot2-webservice  # 웹 콘솔에서 등록한 CodeDeploy 애플리케이션
+   
+   deployment_group: freelec-springboot2-webservice-group # 웹 콘솔에서 등록한 CodeDeploy 배포 그룹
+   
+   region: ap-northeast-2
+   wait-until-deployed: true
+```
+* 그리고 나서 커밋하고 깃허브에 푸쉬하면 Travis CI가 자동으로 시작된다.
+* `cd /home/ec2-user/app/step2/zip` 해당 폴더에서
+* `ll` 파일들이 잘 왔는지 확인
+* 파일이 잘 도착했다면 Travis CI와 S3, CodeDeploy가 연동이 완료 된 것이다.
+
+### 배포 자동화 구성
+* 실제 Jar를 배포하여 실행을 해야한다.
+
+#### deploy.sh 파일 추가
+* step2 환경에서 실행될 deploy.sh 파일을 생성한다.
+```shell
+#!/bin/bash
+
+REPOSITORY=/home/ec2-user/app/step2
+PROJECT_NAME=freelec-springboot2-webservice
+
+echo "> Build 파일 복사"
+
+cp $REPOSITORY/zip/*.jar $REPOSITORY/
+
+echo "> 현재 구동중인 애플리케이션 pid 확인"
+
+CURRENT_PID=$(pgrep -fl freelec-springboot2-webservice | grep jar | awk '{print $1}') # 
+
+echo "현재 구동중인 어플리케이션 pid: $CURRENT_PID"
+
+if [ -z "$CURRENT_PID" ]; then
+    echo "> 현재 구동중인 애플리케이션이 없으므로 종료하지 않습니다."
+else
+    echo "> kill -15 $CURRENT_PID"
+    kill -15 $CURRENT_PID
+    sleep 5
+fi
+
+echo "> 새 어플리케이션 배포"
+
+JAR_NAME=$(ls -tr $REPOSITORY/*.jar | tail -n 1)
+
+echo "> JAR Name: $JAR_NAME"
+
+echo "> $JAR_NAME 에 실행권한 추가"
+
+chmod +x $JAR_NAME
+
+echo "> $JAR_NAME 실행"
+
+nohup java -jar \
+    -Dspring.config.location=classpath:/application.properties,classpath:/application-real.properties,/home/ec2-user/app/application-oauth.properties,/home/ec2-user/app/application-real-db.properties \
+    -Dspring.profiles.active=real \
+    $JAR_NAME > $REPOSITORY/nohup.out 2>&1 &
+```
+
+#### .travis.yml 파일 수정
+* 현재는 설정으로는 모든 파일을 zip파일로 만드는데, 실제로 필요한 파일들은 Jar, appspec.yml, 배포를 위한 스크립트들이다.
+* 이 외 나머지는 배포에 필요하지 않으니 포함하지 않도록 수정한다.
+```yaml
+before_deploy:
+  - mkdir -p before-deploy # zip에 포함시킬 파일들을 담을 디렉토리 생성, Travis CI는 S3로 특정 파일만 업로드가 안됨(디렉토리 단위로만 업로드 가능)
+  - cp scripts/*.sh before-deploy/
+  - cp appspec.yml before-deploy/
+  - cp build/libs/*.jar before-deploy/
+  - cd before-deploy && zip -r before-deploy * # before-deploy로 이동후 전체 압축
+  - cd ../ && mkdir -p deploy # 상위 디렉토리로 이동후 deploy 디렉토리 생성
+  - mv before-deploy/before-deploy.zip deploy/freelec-springboot2-webservice.zip # deploy로 zip파일 이동
+```
+
+#### appspec.yml 파일 수정
+* 아래 코드를 추가한다.
+```yaml
+permissions:
+  - object: /
+    pattern: "**"
+    owner: ec2-user
+    group: ec2-user
+
+hooks:
+  ApplicationStart:
+    - location: deploy.sh
+      timeout: 60
+      runas: ec2-user
+```
+* 여기까지 설정 후 깃허브로 커밋 및 푸쉬를 하고, Travis CI에서 성공 메시지를 확인하면 CodeDeploy에서의 배포가 성공한 것이다.
+
 
 
 ___
