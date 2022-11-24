@@ -310,6 +310,11 @@ hooks:
 ```
 * 여기까지 설정 후 깃허브로 커밋 및 푸쉬를 하고, Travis CI에서 성공 메시지를 확인하면 CodeDeploy에서의 배포가 성공한 것이다.
 
+### CodeDeploy 로그 확인
+* AWS가 지원하는 서비스에서는 오류가 발생했을 때 로그 찾는 방법을 모르면 오류를 해결하기 힘들다.
+* CodeDeploy에 관한 대부분 내용은 /opt/codedeploy-agent/deployment-root에 있다.
+* 해당 디렉토리로 이동한 뒤 목록(`ll`)을 확인해보면 deployment-logs라는 디렉토리가 있고, 해당 디렉토리 안에 codedeploy-agent-deployments.log파일이 로그 파일이다.
+
 
 
 ___
