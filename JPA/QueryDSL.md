@@ -9,21 +9,21 @@
 
 ## 기본 Q-Type
 * Q 클래스 인스턴스를 사용하는 2가지 방법이 있다.
-'''java
+```java
 QMember qMember = new QMember("m");
-'''
+```
    * 별칭 직접 지정
-'''java
+```java
 QMember qMember = QmMember.member;
-'''
+```
    * 기본 인스턴스 사용
 * Qmember.member를 static import해서 사용하는 것이 좋다.
 
 ## 검색 조건 쿼리
 * JPQL이 제공하는 모든 검색조건(where 절)
-'''java
+```java
 member.username.eq("member") // username = 'member'
 member.username.ne("member") // username != 'member'
 member.username.eq("member").not() // username != 'member'
 member.username.isNotNull() // username is not null
-'''
+```
