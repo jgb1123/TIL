@@ -26,4 +26,16 @@ member.username.eq("member") // username = 'member'
 member.username.ne("member") // username != 'member'
 member.username.eq("member").not() // username != 'member'
 member.username.isNotNull() // username is not null
+member.age.in(10, 20) // age in (10, 20)
+member.age.notIn(10, 20) // age not in (10, 20)
+member.age.between(10, 20) // age between 10 and 20
+member.age.goe(30) // age >= 30
+member.age.gt(30) // age > 30
+member.age.loe(30) // age <= 30
+member.age.lt(30) // age < 30
+member.username.like("김%") // username like "김%"
+member.username.contain("철") // username like "%철%"
+member.username.startsWith("장") // username like "장%"
 ```
+* where()에 파라미터로 검색조건를 추가하면 and조건이 추가된다.
+* 또한 검색 조건들은 where() 뒤에 .and() 와 .or()를 사용해 메서드 체인으로 연결할 수 있다.
