@@ -39,3 +39,16 @@ member.username.startsWith("장") // username like "장%"
 ```
 * where()에 파라미터로 검색조건를 추가하면 and조건이 추가된다.
 * 또한 검색 조건들은 where() 뒤에 .and() 와 .or()를 사용해 메서드 체인으로 연결할 수 있다.
+
+## 결과 조회 쿼리
+* fetch() : 리스트를 조회, 결과가 없으면 빈 리스트를 반환한다.
+* fetchOne() : 단 건 조회, 결과가 없으면 null, 결과가 둘 이상이면 예외발생
+* fetchFirst() : 첫번째로 발견되는 결과 조회, limit(1).fetchOne()와 같다.
+* fetchResult() : 페이징을 포함한 결과 조회
+* fetchCount() : count 쿼리로 변경해서 count 수 조회가능
+
+## 정렬
+* orderBy()를 사용해 정렬할 수 있다.
+* desc()를 이용해 내림차순으로, acs()를 이용해 오름차순으로 정렬할 수 있다.
+* nullLast()나 nullFisrt()로 null 데이터에 순서를 부여할 수 있다.
+
