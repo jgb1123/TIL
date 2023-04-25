@@ -52,3 +52,20 @@ member.username.startsWith("장") // username like "장%"
 * desc()를 이용해 내림차순으로, acs()를 이용해 오름차순으로 정렬할 수 있다.
 * nullLast()나 nullFisrt()로 null 데이터에 순서를 부여할 수 있다.
 
+## 페이징
+```java
+QueryResults<Member> queryResults = queryFactory
+.selectFrom(member)
+.orderBy(member.username.desc())
+.offset(1)
+.limit(2)
+.fetchResults();
+
+queryResults.getTotal(); // 전체 데이터 수
+queryResults.getLimit(); // 몇개로 제한할 지
+queryResults.getOffset(); // 몇 번째부터
+queryResults.getResults().size(); // 페이징 결과의 데이터 수
+```
+* fetchResult()를 사용할 경우 count쿼리가 먼저 나가고 select쿼리가 나간다.
+* 실무에서는 페이징쿼리를 작성할 때 데이터를 조회하는 쿼리는 여러 테이블을 조인해서 하지만, count자체는 그럴필요가 없는 경우도 많다.
+* fetchResult()를 사용하면 자동화된 count쿼리가 나가므로 성능상 안좋을 수 있으므로, 따로 count쿼리를 별도로 내는게 좋다.
