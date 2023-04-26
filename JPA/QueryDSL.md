@@ -69,3 +69,25 @@ queryResults.getResults().size(); // 페이징 결과의 데이터 수
 * fetchResult()를 사용할 경우 count쿼리가 먼저 나가고 select쿼리가 나간다.
 * 실무에서는 페이징쿼리를 작성할 때 데이터를 조회하는 쿼리는 여러 테이블을 조인해서 하지만, count자체는 그럴필요가 없는 경우도 많다.
 * fetchResult()를 사용하면 자동화된 count쿼리가 나가므로 성능상 안좋을 수 있으므로, 따로 count쿼리를 별도로 내는게 좋다.
+
+## 집합
+### 일반적인 집합 함수
+```java
+List<Tuple> result = queryFactory
+   .select(
+      member.count(), // 멤버 수
+      member.age.sum(), // 멤버 나이의 합
+      member.age.avg(), // 멤버 나이의 평균
+      member.age.max(), // 멤버 나이의 최댓값
+      member.age.min() // 멤버 나이의 최솟값
+   )
+   .from(member)
+   .fetch();
+// Tuple
+Tuple tuple = result.get(0);
+tuple.get(member.count());
+tuple.get(member.age.avg());
+```
+* tuple은 querydsl에서 제공하는 자료구조로, select에서 원하는 데이터 타입이 여러개면 tuple로 결과를 조회할 수 있다.
+* 실무에서는 tuple보다는 dto로 가져오도록 많이 사용한다.
+
