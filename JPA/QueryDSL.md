@@ -91,3 +91,23 @@ tuple.get(member.age.avg());
 * tuple은 querydsl에서 제공하는 자료구조로, select에서 원하는 데이터 타입이 여러개면 tuple로 결과를 조회할 수 있다.
 * 실무에서는 tuple보다는 dto로 가져오도록 많이 사용한다.
 
+### groupBy()
+```java
+List<Tuple> result = queryFactory
+   .select(team.name, member.age.avg()
+   .from(member)
+   .join(member.team, team)
+   .groupBy(team.name)
+   .fetch();
+```
+
+### having()
+```java
+List<Tuple> result = queryFactory
+   .select(team.name, member.age.avg()
+   .from(member)
+   .join(member.team, team)
+   .groupBy(team.name)
+   .having(member.age.avg().gt(15))
+   .fetch();
+```
