@@ -111,3 +111,19 @@ List<Tuple> result = queryFactory
    .having(member.age.avg().gt(15))
    .fetch();
 ```
+
+## 조인
+### 기본 조인
+* 첫번째 파라미터에 조인 대상을 지정하고, 두번내 파라미터에 별칭을 사용할 Q타입 클래스를 지정하면 된다.
+```java
+Lisr<Member> result = queryFactory
+   .selectFrom(member)
+   .join(member.team, team)
+   .where(team.name.eq("A팀"))
+   .fetch();
+```
+* 조인 이후에 on을 넣어서 대상 지정을 넣을 수 있다.
+* 연관관계가 없어도 조안을 할 수 잇는 세타조인도 가능하다.
+  * 세타조인은 연관관계가 없이 데이터를 다 가져온 다음 조인하는 방식이다.
+  * from에 여러 엔티티를 가지고와서 세타조인을 한다.
+
