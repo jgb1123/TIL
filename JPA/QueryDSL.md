@@ -127,3 +127,19 @@ Lisr<Member> result = queryFactory
   * 세타조인은 연관관계가 없이 데이터를 다 가져온 다음 조인하는 방식이다.
   * from에 여러 엔티티를 가지고와서 세타조인을 한다.
 
+### on절
+* on절을 활용한 조인은 대상을 필터링해주고, 연관관계가 없는 엔티티는 외부조린을 활용할 수 있다.
+  * on절은 join할 데이터를 필터해주는 반면, where절은 join을 하고 나서 데이터를 필터링하기위해 사용된다.
+  * on절이 where절보다 더 실행된다.
+```java
+List<Tuple> result = queryFactory
+   .select(member, team)
+   .from(member)
+   .leftJoin(member.team, team)
+   .on(team.name.eq("A팀")
+   .fetch();
+```
+* on절을 사용할 때 inner join을 사용하면 where과 결과적으로 동일하다.
+* 연관관계가 없는 엔티티를 외부 조인할 경우 on절이 쓰인다.
+  * 연관관계가 있는 경우 `leftJoin(member.team, team)`을 통해 member가 가진 FK를 통해 조인한다.
+  * 연관관계가 없는 경우 `leftJoin(team).on()`과 같이 team에 조인을 하는데 이 조건을 on절에 담기게 해서 조인한다.
