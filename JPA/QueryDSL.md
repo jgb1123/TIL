@@ -143,3 +143,29 @@ List<Tuple> result = queryFactory
 * 연관관계가 없는 엔티티를 외부 조인할 경우 on절이 쓰인다.
   * 연관관계가 있는 경우 `leftJoin(member.team, team)`을 통해 member가 가진 FK를 통해 조인한다.
   * 연관관계가 없는 경우 `leftJoin(team).on()`과 같이 team에 조인을 하는데 이 조건을 on절에 담기게 해서 조인한다.
+
+### 페치조인
+* 페치조인은 JPA 사용 시 성능 최적화를 위해 사용하는 JPQL의 기능이다.
+```java
+Member findMember = queryFactory
+   .selectFrom(QMember.member)
+   .join(member.team, team).fetchJoin()
+   .where(QMember.member.username.eq("member1"))
+   .fetchOne();
+```
+
+### 서브쿼리
+* 서브쿼리는 select문 안에 다시 select문이 기술된 형태의 쿼리이며, 안에 있는 결과를 밖에서 받아 처리하는 구조이다.
+* 단일 select문으로 조건식을 만들기 복잡할 경우나, 완전히 다른 테이블에서 값을 조회해서 메인 쿼리로 이용하고자 할 때 사용한다.
+* 서브쿼리는 select절이나 where절에서만 가능하다.
+```java
+// 나이가 가장많은 회원 조회
+Member findMember = queryFactory
+   .selectFrom(member)
+   .where(member.age.eq(
+      JPAExpressions
+         .select(qMember.age.max())
+         .from(qMember)
+   ))
+   .fetchOne();
+```
