@@ -169,3 +169,26 @@ Member findMember = queryFactory
    ))
    .fetchOne();
 ```
+
+### case문
+* case문은 select, 조건절(where), order by에서 사용이 가능하다.
+
+```java
+List<String> result = queryFactory
+   .select(member.age // 일반적인 case문
+      .when(10).then("10살")
+      .when(20).then("20살")
+      .otherwise("기타"))
+   .from(member)
+   .fetch();
+```
+
+```java
+List<String> result = queryFactory
+   .select(new CaseBuilder() // 조금 복잡한 case문
+      .when(member.age.between(10, 19).then("10대")
+      .when(member.age.between(20, 29).then("20대")
+      .otherwise("기타"))
+   .from(member)
+   .fetch();
+```
