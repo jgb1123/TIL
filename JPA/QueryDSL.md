@@ -7,6 +7,67 @@
 * QueryDSL은 오픈소스 프로젝트로, JPQL을 Java코드로 작성할 수 있도록 하는 라이브러리이다.
 * QueryDSL은 select, from, where등 쿼리 작성에 필요한 키워드를 메서드 형식으로 제공한다.
 
+## Gradle에서 Querydsl 설정
+* build.gradle파일에 querydsl 설정을 추가해야 한다.
+```groovy
+// queryDsl version 정보 추가
+buildscript {
+  ext {
+    queryDslVersion = "5.0.0"
+  }
+}
+
+...
+        
+plugins{
+  ...
+  // querydsl plugins 추가
+  id"com.ewerk.gradle.plugins.querydsl"version"1.0.10"
+  ...
+}
+
+...
+
+dependencies {
+  ...
+  // querydsl dependencies 추가
+  implementation "com.querydsl:querydsl-jpa:${queryDslVersion}"
+  implementation "com.querydsl:querydsl-apt:${queryDslVersion}"
+  ...
+}
+
+...
+
+// querydsl에서 사용할 경로 설정
+def querydslDir = "$buildDir/generated/querydsl"
+
+// JPA 사용 여부와 사용할 경로를 설정
+querydsl {
+  jpa = true
+  querydslSourcesDir = querydslDir
+}
+
+// build 시 사용할 sourceSet 추가
+sourceSets {
+  main.java.srcDir querydslDir
+}
+
+// querydsl 컴파일시 사용할 옵션 설정
+compileQuerydsl{
+  options.annotationProcessorPath = configurations.querydsl
+}
+
+// querydsl 이 compileClassPath 를 상속하도록 설정
+configurations {
+  compileOnly {
+    extendsFrom annotationProcessor
+  }
+  querydsl.extendsFrom compileClasspath
+}
+```
+* gradle 설정이 완료되면 `Gradle Tasks` -> `compileQuerydsl`을 실행한다.
+* 빌드에 성공하면 `build/generated/querydsl` 경로에 Project Entity들의 QClass가 생성된 것을 확인할 수 있다.
+
 ## 기본 문법
 
 ### 기본 Q-Type
@@ -214,4 +275,3 @@ String result = queryFactory
    .where(member.username.eq("member1"))
    .fetchOne();
 ```
-
