@@ -118,11 +118,11 @@ member.username.startsWith("장") // username like "장%"
 ### 페이징
 ```java
 QueryResults<Member> queryResults = queryFactory
-.selectFrom(member)
-.orderBy(member.username.desc())
-.offset(1)
-.limit(2)
-.fetchResults();
+        .selectFrom(member)
+        .orderBy(member.username.desc())
+        .offset(1)
+        .limit(2)
+        .fetchResults();
 
 queryResults.getTotal(); // 전체 데이터 수
 queryResults.getLimit(); // 몇개로 제한할 지
@@ -137,15 +137,15 @@ queryResults.getResults().size(); // 페이징 결과의 데이터 수
 #### 일반적인 집합 함수
 ```java
 List<Tuple> result = queryFactory
-   .select(
-      member.count(), // 멤버 수
-      member.age.sum(), // 멤버 나이의 합
-      member.age.avg(), // 멤버 나이의 평균
-      member.age.max(), // 멤버 나이의 최댓값
-      member.age.min() // 멤버 나이의 최솟값
-   )
-   .from(member)
-   .fetch();
+        .select(
+            member.count(), // 멤버 수
+            member.age.sum(), // 멤버 나이의 합
+            member.age.avg(), // 멤버 나이의 평균
+            member.age.max(), // 멤버 나이의 최댓값
+            member.age.min() // 멤버 나이의 최솟값
+        )
+        .from(member)
+        .fetch();
 // Tuple
 Tuple tuple = result.get(0);
 tuple.get(member.count());
@@ -157,22 +157,22 @@ tuple.get(member.age.avg());
 #### groupBy()
 ```java
 List<Tuple> result = queryFactory
-   .select(team.name, member.age.avg()
-   .from(member)
-   .join(member.team, team)
-   .groupBy(team.name)
-   .fetch();
+        .select(team.name, member.age.avg()
+        .from(member)
+        .join(member.team, team)
+        .groupBy(team.name)
+        .fetch();
 ```
 
 #### having()
 ```java
 List<Tuple> result = queryFactory
-   .select(team.name, member.age.avg()
-   .from(member)
-   .join(member.team, team)
-   .groupBy(team.name)
-   .having(member.age.avg().gt(15))
-   .fetch();
+        .select(team.name, member.age.avg()
+        .from(member)
+        .join(member.team, team)
+        .groupBy(team.name)
+        .having(member.age.avg().gt(15))
+        .fetch();
 ```
 
 ### 조인
@@ -180,10 +180,10 @@ List<Tuple> result = queryFactory
 * 첫번째 파라미터에 조인 대상을 지정하고, 두번내 파라미터에 별칭을 사용할 Q타입 클래스를 지정하면 된다.
 ```java
 Lisr<Member> result = queryFactory
-   .selectFrom(member)
-   .join(member.team, team)
-   .where(team.name.eq("A팀"))
-   .fetch();
+        .selectFrom(member)
+        .join(member.team, team)
+        .where(team.name.eq("A팀"))
+        .fetch();
 ```
 * 조인 이후에 on을 넣어서 대상 지정을 넣을 수 있다.
 * 연관관계가 없어도 조안을 할 수 잇는 세타조인도 가능하다.
@@ -196,11 +196,11 @@ Lisr<Member> result = queryFactory
   * on절이 where절보다 더 실행된다.
 ```java
 List<Tuple> result = queryFactory
-   .select(member, team)
-   .from(member)
-   .leftJoin(member.team, team)
-   .on(team.name.eq("A팀")
-   .fetch();
+        .select(member, team)
+        .from(member)
+        .leftJoin(member.team, team)
+        .on(team.name.eq("A팀")
+        .fetch();
 ```
 * on절을 사용할 때 inner join을 사용하면 where과 결과적으로 동일하다.
 * 연관관계가 없는 엔티티를 외부 조인할 경우 on절이 쓰인다.
@@ -211,10 +211,10 @@ List<Tuple> result = queryFactory
 * 페치조인은 JPA 사용 시 성능 최적화를 위해 사용하는 JPQL의 기능이다.
 ```java
 Member findMember = queryFactory
-   .selectFrom(QMember.member)
-   .join(member.team, team).fetchJoin()
-   .where(QMember.member.username.eq("member1"))
-   .fetchOne();
+        .selectFrom(QMember.member)
+        .join(member.team, team).fetchJoin()
+        .where(QMember.member.username.eq("member1"))
+        .fetchOne();
 ```
 
 #### 서브쿼리
@@ -224,13 +224,13 @@ Member findMember = queryFactory
 ```java
 // 나이가 가장많은 회원 조회
 Member findMember = queryFactory
-   .selectFrom(member)
-   .where(member.age.eq(
-      JPAExpressions
-         .select(qMember.age.max())
-         .from(qMember)
-   ))
-   .fetchOne();
+        .selectFrom(member)
+        .where(member.age.eq(
+            JPAExpressions
+                 .select(qMember.age.max())
+                 .from(qMember)
+        ))
+        .fetchOne();
 ```
 
 ### case문
@@ -238,22 +238,22 @@ Member findMember = queryFactory
 
 ```java
 List<String> result = queryFactory
-   .select(member.age // 일반적인 case문
-      .when(10).then("10살")
-      .when(20).then("20살")
-      .otherwise("기타"))
-   .from(member)
-   .fetch();
+        .select(member.age // 일반적인 case문
+            .when(10).then("10살")
+            .when(20).then("20살")
+            .otherwise("기타"))
+        .from(member)
+        .fetch();
 ```
 
 ```java
 List<String> result = queryFactory
-   .select(new CaseBuilder() // 조금 복잡한 case문
-      .when(member.age.between(10, 19).then("10대")
-      .when(member.age.between(20, 29).then("20대")
-      .otherwise("기타"))
-   .from(member)
-   .fetch();
+        .select(new CaseBuilder() // 조금 복잡한 case문
+            .when(member.age.between(10, 19).then("10대")
+            .when(member.age.between(20, 29).then("20대")
+            .otherwise("기타"))
+        .from(member)
+        .fetch();
 ```
 
 ### 상수, 문자 더하기
@@ -261,17 +261,82 @@ List<String> result = queryFactory
 * 상수가 필요하면 Expressions.constant()를 사용하면 된다.
 ```java
 List<Tuple> result = queryFactory
-   .select(member.username, constant("A"))
-   .from(member)
-   .fetch();
+        .select(member.username, constant("A"))
+        .from(member)
+        .fetch();
 ```
 
 #### 문자 더하기
 * 문자를 더하려면 concat을 이용하면 편하다.
 ```java
 String result = queryFactory
-   .select(member.username.concat("_").concat(member.age.stringValue()))
-   .from(member)
-   .where(member.username.eq("member1"))
-   .fetchOne();
+        .select(member.username.concat("_").concat(member.age.stringValue()))
+        .from(member)
+        .where(member.username.eq("member1"))
+        .fetchOne();
 ```
+
+## 중급 문법
+### 프로젝션
+* select 구문에 어떤 필드를 가져올지 지정하는 것을 프로젝션이라고 한다.
+* 사용자 이름만 반환하는 경우에는 프로젝션 대상이 사용자 이름 1개이고, 1개이기 때문에 타입을 명확하게 지정할 수 있다.
+* 하지만 프로젝션 대상이 여러개인 경우 Tuple이나 DTO로 조회해야 한다.
+
+### 프로젝션 대상 하나
+```java
+List<String> result = queryFactor
+        .select(member.username)
+        .from(member)
+        .fetch();
+```
+
+### Tuple
+* 프로젝션이 여러개인 결과 값을 처리할 수 있도록 Querydsl에서는 Tuple클래스를 제공한다.
+```java
+List<Tuple> result = queryFactory
+        .select(member.username, member.age)
+        .from(member)
+        .orderBy(member.age.asc())
+        .fetch();
+```
+
+### DTO로 조회
+* DTO클래스로 결과값을 받는 방법은 프로퍼티, 필드, 생성자 접근 방법이 있다.
+#### 프로퍼티 접근 방법
+```java
+List<MemberDto> result = queryFactory
+        .select(Projections.bean(
+                MemberDto.class, 
+                member.username, 
+                member.age
+        ))
+        .from(member)
+        .fetch();
+```
+* Querydsl은 MemberDto 객체를 기본 생성자로 생성하고 값을 Setter로 생성한다.
+
+#### 필드 접근 방법
+```java
+List<MemberDto> result = queryFactory
+        .select(Projections.fields(
+                MemberDto.class,
+                member.username,
+                member.age
+        ))
+        .from(member)
+        .fetch();
+```
+* Getter, Setter없이 바로 필드에 접근해서 값을 설정한다.
+
+#### 생성자 접근 방법
+```java
+List<MemberDto> result = queryFactory
+        .select(Projections.constructor(
+                MemberDto.class,
+                member.username,
+                member.age
+        ))
+        .from(member)
+        .fetch();
+```
+* MemberDto 클래스의 생성자로 값을 설정한다.
