@@ -282,7 +282,7 @@ String result = queryFactory
 * 사용자 이름만 반환하는 경우에는 프로젝션 대상이 사용자 이름 1개이고, 1개이기 때문에 타입을 명확하게 지정할 수 있다.
 * 하지만 프로젝션 대상이 여러개인 경우 Tuple이나 DTO로 조회해야 한다.
 
-### 프로젝션 대상 하나
+#### 프로젝션 대상 하나
 ```java
 List<String> result = queryFactor
         .select(member.username)
@@ -290,7 +290,7 @@ List<String> result = queryFactor
         .fetch();
 ```
 
-### Tuple
+#### Tuple
 * 프로젝션이 여러개인 결과 값을 처리할 수 있도록 Querydsl에서는 Tuple클래스를 제공한다.
 ```java
 List<Tuple> result = queryFactory
@@ -300,9 +300,9 @@ List<Tuple> result = queryFactory
         .fetch();
 ```
 
-### DTO로 조회
+#### DTO로 조회
 * DTO클래스로 결과값을 받는 방법은 프로퍼티, 필드, 생성자 접근 방법이 있다.
-#### 프로퍼티 접근 방법
+##### 프로퍼티 접근 방법
 ```java
 List<MemberDto> result = queryFactory
         .select(Projections.bean(
@@ -315,7 +315,7 @@ List<MemberDto> result = queryFactory
 ```
 * Querydsl은 MemberDto 객체를 기본 생성자로 생성하고 값을 Setter로 생성한다.
 
-#### 필드 접근 방법
+##### 필드 접근 방법
 ```java
 List<MemberDto> result = queryFactory
         .select(Projections.fields(
@@ -328,7 +328,7 @@ List<MemberDto> result = queryFactory
 ```
 * Getter, Setter없이 바로 필드에 접근해서 값을 설정한다.
 
-#### 생성자 접근 방법
+##### 생성자 접근 방법
 ```java
 List<MemberDto> result = queryFactory
         .select(Projections.constructor(
@@ -340,3 +340,37 @@ List<MemberDto> result = queryFactory
         .fetch();
 ```
 * MemberDto 클래스의 생성자로 값을 설정한다.
+
+#### @QueryProjection
+* DTO 생성자 위에 해당 애너테이션을 붙이고, 컴파일 결과로 QDto파일이 생성된다.
+* DTO 클래스 생성자에 `@QueryProjection` 애너테이션을 붙이고, `compileQuerydsl`을 실행하면 `QMemberDto`클래스를 얻을 수 있다.
+```java
+public class MemberDto {
+    private String username;
+    private int age;
+    
+    public MemberDto() {
+        
+    }
+    
+    @QueryProjection
+    public MemberDto(String username, int age) {
+        this.username = username;
+        this.age = age;
+    }
+}
+```
+
+```java
+List<MemberDto> result = queryFactory
+        .select(new QMemberDto(member.username, member.age))
+        .from(member)
+        .fetch();
+```
+* 이 방식은 컴파일러로 타입을 체크할 수 있는 가장 안전한 방법이지만, DTO에 QueryDSL 애너테이션을 유지해야 하는 점과 DTO까지 Q파일을 생성해야 하는 단점이 있다.
+
+### 동적 쿼리
+* 복잡한 조건에 따른 동적 쿼리를 만들기 위해서는 BooleanBuilder와 where 두가지 방식을 사용할 수 있다.
+
+#### BooleanBuilder
+* 전달 받은 개수만큼 BooleanBuilder를 사용해 or, and 구문을 생성한다.
