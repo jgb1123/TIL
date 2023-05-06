@@ -374,3 +374,51 @@ List<MemberDto> result = queryFactory
 
 #### BooleanBuilder
 * 전달 받은 개수만큼 BooleanBuilder를 사용해 or, and 구문을 생성한다.
+```java
+private List<Member> searchMember1(String usernameParam, Integer ageParam) {
+    BooleanBuilder builder = new BooleanBuilder();
+    if(usernameParam != null) {
+        builder.and(member.username.eq(usernameParam));
+    }
+
+    if(ageParam != null) {
+        builder.and(member.age.eq(ageParam));
+    }
+    
+    return queryFactory
+        .selectFrom(member)
+        .where(builder)
+        .fetch();
+}
+```
+
+```java
+List<Member> result = searchMember1(usernameParam, ageParam);
+```
+
+#### where
+```java
+private List<Member> searchMember2(String usernameCond, Integer ageCond) {
+    return queryFactory
+        .selectFrom(member)
+        .where(usernameEq(usernameCond), ageEq(ageCond))
+        .fetch();
+}
+
+private Predicate usernameEq(String usernameCond) {
+    if(usernameCond == null) return null;
+    return member.username.eq(usernameCond);
+}
+
+private Predicate ageEq(Integer ageCond) {
+    if(ageCond == null) return null;
+    return member.age.eq(ageCond);
+}
+```
+
+```java
+List<Member> result = searchMember2(usernameParam, ageParam);
+```
+* usernameEq() 메서드가 null을 리턴하게 되면 where()에 null값이 들어가게 되는데, 이것은 무시가 된다. 그러므로 동적 쿼리가 될 수 있다.
+* 쿼리 자체의 가독성이 더 높아지고 코드가 더 깔끔하게 나오므로, 실무에서 더 많이 사용한다.
+  * BooleanBuilder는 객체를 또 봐야한다.
