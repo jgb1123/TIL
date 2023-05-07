@@ -422,3 +422,30 @@ List<Member> result = searchMember2(usernameParam, ageParam);
 * usernameEq() 메서드가 null을 리턴하게 되면 where()에 null값이 들어가게 되는데, 이것은 무시가 된다. 그러므로 동적 쿼리가 될 수 있다.
 * 쿼리 자체의 가독성이 더 높아지고 코드가 더 깔끔하게 나오므로, 실무에서 더 많이 사용한다.
   * BooleanBuilder는 객체를 또 봐야한다.
+
+### 수정, 삭제 벌크 연산
+* 쿼리 한번으로 대량의 데이터를 수정하는 방식을 벌크연산이라고 한다.
+#### 데이터 수정
+```java
+long count = queryFactory
+        .update(member)
+        .set(member.username, "비회원")
+        .where(member.age.lt(30))
+        .execute();
+
+em.flush();
+em.clear();
+```
+
+* 데이터 수정 쿼리를 위와같이 실행하게 되면 영속성 컨텍스트를 무시하고 바로 DB에 쿼리를 날린다.
+* 따라서 컨텍스트와 DB간에 데이터 불일치가 생기므로, 영속성 컨텍스트 내용을 초기화해서 DB와 일치시켜야 한다.
+
+#### 데이터 삭제
+```java
+long count = queryFactory
+        .delete(member)
+        .where(member.age.lt(20))
+        .execute();
+```
+
+
