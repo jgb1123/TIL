@@ -448,4 +448,21 @@ long count = queryFactory
         .execute();
 ```
 
+### SQL function 호출
+```java
+String result = queryFactory
+        .select(Expressions.stringTemplate("function('replace', {0}, {1}, {2})", // replace 사용
+                member.username, "member", "M"))
+        .from(member)
+        .fetchFirst();
+```
+* SQL function은 JPA와 같이 Dialect에 등록된 내용만 호출할 수 있다.
 
+
+### 함수 정리
+* `JPAExpressions` 서브쿼리에 사용함
+* `Expressions` 상수, SQL function 사용함
+* `Projections` 프로젝션을 DTO로 반환할 때 사용함
+* `ExpressionUtils` 서브쿼리에 별칭을 줄 때 사용함
+* `BooleanBuilder` 동적 쿼리의 파라미터에 사용함
+* `BooleanExpression` where 다중 파라미터 시 메서드의 반환 값
