@@ -466,3 +466,59 @@ String result = queryFactory
 * `ExpressionUtils` 서브쿼리에 별칭을 줄 때 사용함
 * `BooleanBuilder` 동적 쿼리의 파라미터에 사용함
 * `BooleanExpression` where 다중 파라미터 시 메서드의 반환 값
+
+## 순수 JPA와 Querydsl
+### 순수 JPA 레파지토리와 Querydsl
+* JpaQueryFactory를 사용하면 된다.
+
+```java
+@Repository
+public class MemberJpaRepository {
+
+    private final EntityManager em;
+    private final JPAQueryFactory queryFactory;
+    
+    // queryFactory를 bean으로 올려서 사용해도 되고, EntityManager를 받아 새롭게 queryFactory를 만들어도 됨
+    // queryFactory를 bean으로 올려서 쓰면 lombok의 @RequiredArgsConstructor를 편하게 사용할 수 있음 
+    // 하지만 JPAQueryFactory를 외부에서 받아야 하기 때문에 테스트코드를 작성할 때 불편할 수 있음
+    public MemberJpaRepository(EntityManager em) {
+        this.em = em;
+        this.queryFactory = new JPAQueryFactory(em);
+    }
+
+    public void save(Member member) {
+        em.persist(member);
+    }
+
+    public Optional<Member> findById(Long id) {
+        Member member = em.find(Member.class, id);
+        return Optional.ofNullable(member);
+    }
+
+    public List<Member> findAll() { // 순수 JPA
+        return em.createQuery("select m from Member m", Member.class)
+                .getResultList();
+    }
+    
+    public List<Member> findAll_Querydsl() { // Querydsl 적용
+        return queryFactory
+                .selectFrom(member)
+                .fetch();
+    }
+
+    public List<Member> findByUsername(String username) { // 순수 JPA
+        return em.createQuery("select m from Member m where m.username =:username", Member.class)
+                .setParameter("username", username)
+                .getResultList();
+    }
+    
+    public List<Member> findByUsername_Querydsl(String username) {   // Querydsl 적용
+        return queryFactory
+                    .selectFrom(member)
+                    .where(member.username.eq(username))
+                    .fetch();
+    }
+}
+```
+* JpaQueryFactory는 EntityManager를 이용해 생성해도 되고, 빈으로 등록 후 주입받아도 된다.
+* 스프링이 주입해서 사용하는 EntityManager는 프록싱해서 주입해준 가짜 EntityManager이므로, 동시성 문제에 대해 아무 문제 없다.
