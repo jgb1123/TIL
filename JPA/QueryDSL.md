@@ -522,3 +522,84 @@ public class MemberJpaRepository {
 ```
 * JpaQueryFactory는 EntityManager를 이용해 생성해도 되고, 빈으로 등록 후 주입받아도 된다.
 * 스프링이 주입해서 사용하는 EntityManager는 프록싱해서 주입해준 가짜 EntityManager이므로, 동시성 문제에 대해 아무 문제 없다.
+
+### 동적 쿼리와 성능 최적화 조회 (Builder)
+* 동적 쿼리를 사용하기 위한 조건들을 Builder로 만들고 이를 한번에 Dto로 가져오도록 하여 성능을 최적화하는 방법이다.
+```java
+public List<MemberTeamDto> searchByBuilder(MemberSearchCondition condition) {
+    BooleanBuilder builder = new BooleanBuilder();
+
+    if(hasText(condition.getUsername())) { // StringUtils.hasText() null체크도 있지만 ""으로 들어올 수도 있기 때문에 hasText() 사용
+        builder.and(member.username.eq(condition.getUsername()));
+    }
+        
+    if(hasText(condition.getTeamName())) {
+        builder.and(team.name.eq(condition.getTeamName()));
+    }
+
+    if(condition.getAgeGoe() != null) {
+        builder.and(member.age.goe(condition.getAgeGoe()));
+    }
+
+    if(condition.getAgeLoe() != null) {
+        builder.and(member.age.loe(condition.getAgeLoe()));
+    }
+
+    return queryFactory
+        .select(new QMemberTeamDto(
+                member.id.as("memberId"),
+                member.username,
+                member.age,
+                team.id.as("teamId"),
+                team.name.as("teamName")
+        ))
+        .from(member)
+        .leftJoin(member.team, team)
+        .where(builder)
+        .fetch();
+}
+```
+* 위 예시에 추가로 limit이나 페이징 쿼리 또는 기본 조건을 추가해 대량의 데이터를 가지고 오지 않도록 설계가 필요하다.
+
+### 동적 쿼리와 성능 최적화 조회 (where)
+```java
+public List<MemberTeamDto> searchByWhere(MemberSearchCondition condition) {
+    return queryFactory
+        .select(new QMemberTeamDto(
+                member.id.as("memberId"),
+                member.username,
+                member.age,
+                team.id.as("teamId"),
+                team.name.as("teamName")
+        ))
+        .from(member)
+        .leftJoin(member.team, team)
+        .where(
+                usernameEq(condition.getUsername()),
+                teamNameEq(condition.getTeamName()),
+                ageGoe(condition.getAgeGoe()),
+                ageLoe(condition.getAgeLoe())
+        )
+        .fetch();
+}
+
+private BooleanExpression usernameEq(String username) {
+    return hasText(username) ? member.username.eq(username) : null;
+}
+
+private BooleanExpression teamNameEq(String teamName) {
+    return hasText(teamName) ? team.name.eq(teamName) : null;
+}
+
+private BooleanExpression ageGoe(Integer ageGoe) {
+    return ageGoe != null ? member.age.goe(ageGoe) : null;
+}
+
+private BooleanExpression ageLoe(Integer ageLoe) {
+    return ageLoe != null ? member.age.loe(ageLoe) : null;
+}
+```
+* Builder를 사용한 것 보다 where절을 파라미터 형식으로 조건을 거는게 가독성이 확실히 좋다.
+* Intellij를 사용 시 where절 파라미터를 자동 생성으로 만들 때 Predicate타입을 리턴하도록 하는데, BooleanExpression으로 바꾸는게 더 좋다.
+  * BooleanExpression도 Predicate를 상속받고 있고, 같은 BooleanExpression끼리 조합할 수 있어서 활용성이 더 좋다.
+  * 따라서 Projection이 달라져도 재사용하는게 충분히 가능하다.
