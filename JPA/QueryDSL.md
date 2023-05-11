@@ -603,3 +603,74 @@ private BooleanExpression ageLoe(Integer ageLoe) {
 * Intellij를 사용 시 where절 파라미터를 자동 생성으로 만들 때 Predicate타입을 리턴하도록 하는데, BooleanExpression으로 바꾸는게 더 좋다.
   * BooleanExpression도 Predicate를 상속받고 있고, 같은 BooleanExpression끼리 조합할 수 있어서 활용성이 더 좋다.
   * 따라서 Projection이 달라져도 재사용하는게 충분히 가능하다.
+
+## 스프링 데이터 JPA와 Querydsl
+### 사용자 정의 레파지토리
+* JpaRepository를 상속한 스프링 데이터 JPA 레파지토리인 MemberRepository 생성
+```java
+public interface MemberRepository extends JpaRepository<Member, Long>, MemberRepositoryCustom{
+    List<Member> findByUsername(String username);
+}
+```
+
+* 복잡한 쿼리를 담당한 MemberRepositoryCustom 인터페이스 생성
+```java
+public interface MemberRepositoryCustom {
+    List<MemberTeamDto> search(MemberSearchCondition condition);
+}
+```
+
+* 실제 구현을 담당한 MemberRepositoryImpl 클래스 생성
+```java
+public class MemberRepositoryImpl implements MemberRepositoryCustom {
+    private final JPAQueryFactory queryFactory;
+
+    public MemberRepositoryImpl(EntityManager em) {
+        this.queryFactory = new JPAQueryFactory(em);
+    }
+
+    public List<MemberTeamDto> search(MemberSearchCondition condition) {
+        return queryFactory
+                .select(new QMemberTeamDto(
+                        member.id.as("memberId"),
+                        member.username,
+                        member.age,
+                        team.id.as("teamId"),
+                        team.name.as("teamName")
+                ))
+                .from(member)
+                .leftJoin(member.team, team)
+                .where(
+                        usernameEq(condition.getUsername()),
+                        teamNameEq(condition.getTeamName()),
+                        ageGoe(condition.getAgeGoe()),
+                        ageLoe(condition.getAgeLoe())
+                )
+                .fetch();
+    }
+
+    private BooleanExpression usernameEq(String username) {
+        return hasText(username) ? member.username.eq(username) : null;
+    }
+
+    private BooleanExpression teamNameEq(String teamName) {
+        return hasText(teamName) ? team.name.eq(teamName) : null;
+    }
+
+    private BooleanExpression ageGoe(Integer ageGoe) {
+        return ageGoe != null ? member.age.goe(ageGoe) : null;
+    }
+
+    private BooleanExpression ageLoe(Integer ageLoe) {
+        return ageLoe != null ? member.age.loe(ageLoe) : null;
+    }
+
+    private BooleanExpression ageBetween(Integer ageLoe, Integer ageGoe) {
+        return ageLoe(ageLoe).and(ageGoe(ageGoe));
+    }
+}
+```
+* Querydsl을 이용하는 기능이 너무 특화된 기능이라면, 굳이 MemberRepository로 상속하도록 하는게 아니라 별도의 클래스를 만들고 거기서 쿼리를 관리해도 좋다.
+
+
+
