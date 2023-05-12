@@ -628,7 +628,8 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
     public MemberRepositoryImpl(EntityManager em) {
         this.queryFactory = new JPAQueryFactory(em);
     }
-
+    
+    @Override
     public List<MemberTeamDto> search(MemberSearchCondition condition) {
         return queryFactory
                 .select(new QMemberTeamDto(
@@ -672,5 +673,80 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom {
 ```
 * Querydsl을 이용하는 기능이 너무 특화된 기능이라면, 굳이 MemberRepository로 상속하도록 하는게 아니라 별도의 클래스를 만들고 거기서 쿼리를 관리해도 좋다.
 
+### Querydsl 페이징 연동
+* 사용자 정의 인터페이스에 페이징을 할 수 있는 메서드 추가
+```java
+public interface MemberRepositoryCustom {
+    List<MemberTeamDto> search(MemberSearchCondition condition);
+    Page<MemberTeamDto> searchPageSimple(MemberSearchCondition condition, Pageable pageable); // 페이징 메서드
+    Page<MemberTeamDto> searchPageComplex(MemberSearchCondition condition, Pageable pageable); // 페이징 메서드
+}
+```
 
+* 전체 카운트를 한번에 조회하는 단순한 방법
+```java
+public Page<MemberTeamDto> searchPageSimple(MemberSearchCondition condition, Pageable pageable) {
+    QueryResults<MemberTeamDto> results = queryFactory
+        .select(new QMemberTeamDto(
+                member.id.as("memberId"),
+                member.username,
+                member.age,
+                team.id.as("teamId"),
+                team.name.as("teamName")
+        ))
+        .from(member)
+        .leftJoin(member.team, team)
+        .where(
+                usernameEq(condition.getUsername()),
+                teamNameEq(condition.getTeamName()),
+                ageGoe(condition.getAgeGoe()),
+                ageLoe(condition.getAgeLoe())
+        )
+        .offset(pageable.getOffset())
+        .limit(pageable.getPageSize())
+        .fetchResults();    // count 쿼리와 결과를 가져오는 select 쿼리가 한번에 나간다.
 
+        List<MemberTeamDto> content = results.getResults();
+        long total = results.getTotal();
+        return new PageImpl<>(content, pageable, total);
+}
+```
+
+* 데이터와 전체 카운트를 별도로 조회하는 방법
+  * 카운트 쿼리의 경우 조인을 탈 필요가 없는 경우도 있기 때문에 별도로 작성하는게 성능을 높일 수 있음
+```java
+@Override
+public Page<MemberTeamDto> searchPageComplex(MemberSearchCondition condition, Pageable pageable) {
+    List<MemberTeamDto> content = queryFactory
+        .select(new QMemberTeamDto(
+                member.id.as("memberId"),
+                member.username,
+                member.age,
+                team.id.as("teamId"),
+                team.name.as("teamName")
+        ))
+        .from(member)
+        .leftJoin(member.team, team)
+        .where(
+                usernameEq(condition.getUsername()),
+                teamNameEq(condition.getTeamName()),
+                ageGoe(condition.getAgeGoe()),
+                ageLoe(condition.getAgeLoe())
+        )
+        .offset(pageable.getOffset())
+        .limit(pageable.getPageSize())
+        .fetch();   // 데이터 조회
+
+    long total = queryFactory
+        .selectFrom(member)
+        .leftJoin(member.team, team)
+        .where(
+                usernameEq(condition.getUsername()),
+                teamNameEq(condition.getTeamName()),
+                ageGoe(condition.getAgeGoe()),
+                ageLoe(condition.getAgeLoe())
+        )
+        .fetchCount();  // count 조회
+        return new PageImpl<>(content, pageable, total);
+}
+```
