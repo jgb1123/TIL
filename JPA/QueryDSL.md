@@ -750,3 +750,43 @@ public Page<MemberTeamDto> searchPageComplex(MemberSearchCondition condition, Pa
         return new PageImpl<>(content, pageable, total);
 }
 ```
+
+### CountQuery 최적화
+* Count쿼리는 생략 가능한 경우가 있고, 이것을 스프링 데이터 JPA에서 지원해주기도 한다.
+  * 페이지 시작시 컨텐츠 사이즈가 페이지 사이즈보다 작을 때
+  * 마지막 페이지인 경우에는 count쿼리를 쓸 필요가 없다. (offset + pagesize = total)
+* `PageableExecutionUtils.getPage()`함수는 위의 두 조건의 경우 count쿼리를 나가지 않게 해준다.
+
+
+## 스프링 데이터 JPA가 제공하는 Querydsl 기능
+### 인터페이스 지원 - QuerydslPredicateExecutor
+* QuerydslPredicateExecutor를 이용하면 스프링 데이터 JPA에서 Querydsl조건으로 넣을 수 있는 Predicate를 통해 결과를 조회하는게 가능해진다.
+* MemberRepository에서 QuerydslPredicateExecutor를 상속
+```java
+public interface MemberRepository extends JpaRepository<Member, Long>, MemberRepositoryCustom, QuerydslPredicateExecutor<Member> { 
+    List<Member> findByUsername(String username);
+}
+```
+* QuerydslPredicateExecutor
+```java
+public interface QuerydslPredicateExecutor<T> {
+    Optional<T> findOne(Predicate var1);
+
+    Iterable<T> findAll(Predicate var1);
+
+    Iterable<T> findAll(Predicate var1, Sort var2);
+    
+    Iterable<T> findAll(Predicate var1, OrderSpecifier<?>... var2);
+
+    Iterable<T> findAll(OrderSpecifier<?>... var1);
+
+    Page<T> findAll(Predicate var1, Pageable var2);
+
+    long count(Predicate var1);
+
+    boolean exists(Predicate var1);
+}
+```
+* QuerydslPredicateExecutor에서 정의한 메서드들은 Querydsl Predicate 조건절에 넣을 수 있으며, 이를 스프링 데이터 JPA에서 지원해준다.
+* 하지만 조인을 할 수 없다는 단점이 있고, MemberRepository 같은 레파지토리에 Predicate 파라미터를 넘겨줘야 한다.
+  * 서비스나 컨트롤러 계층에서 직접 만들어서 넘겨줘야 하는데 이는 강한 결합이 생겨 좋지 않다.
