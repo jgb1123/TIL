@@ -790,3 +790,41 @@ public interface QuerydslPredicateExecutor<T> {
 * QuerydslPredicateExecutor에서 정의한 메서드들은 Querydsl Predicate 조건절에 넣을 수 있으며, 이를 스프링 데이터 JPA에서 지원해준다.
 * 하지만 조인을 할 수 없다는 단점이 있고, MemberRepository 같은 레파지토리에 Predicate 파라미터를 넘겨줘야 한다.
   * 서비스나 컨트롤러 계층에서 직접 만들어서 넘겨줘야 하는데 이는 강한 결합이 생겨 좋지 않다.
+
+### Querydsl Web 지원
+* Querydsl Web지원은 컨트롤러 레벨에서 Predicate를 받을 수 있도록 QuerydslPredicateArgumentResolver를 지원해준다.
+
+### 레파지토리 지원 - QuerydslRepositorySupport
+#### 장점
+* `getQuerydsl().applyPagination()` 스프링 데이터가 제공하는 페이징을 Querydsl로 편리하게 변환 가능하다.
+* EntityManager를 제공해준다.
+
+#### 단점
+* Querydsl 3.x버전을 대상으로 만들었기 때문에 Querydsl4.x에 나온 JPAQueryFactory로 시작할 수 없다. (select로 시작할 수 없음)
+* 스프링 데이터 Sort 기능이 정상동작하지 않는다.
+
+
+## 실무 Querydsl 사용법
+### extends, implements 사용하지 않기
+* 일반적으로 필요한 Repository를 만들면 Spring Data Jpa 기능을 이용하기 위해 JpaRepository를 상속받고, 또 Querydsl Jpa를 위해 사용자 정의 Repository를 만들고 이를 상속받으며, 이를 구현한 실제 구현 객체가 필요하다. (혹은 QuerydslRepositorySupport 클래스를 통해 사용자 정의 클래스에서 상속)
+* 하지만 이렇게 매번 상속받는 것이 불편하기도 하고 JpaQueryFactory만 있으면 상관 없기 때문에 상속받는 구조보다는 이것만 주입받도록 하는 것이 가장 깔끔하다.
+```java
+@Repository
+@RequiredArgsConstructor
+public class MemberRepositoryCustom { 
+    private final JpaQueryFactory queryFactory; // 빈으로 등록해줘야 함 
+}
+```
+#### JpaQueryFactory 빈으로 등록하는 방법
+```java
+@Configuration
+public class QuerydslConfiguration {
+    @Autowired
+    EntityManager em;
+
+    @Bean
+    public JPAQueryFactory jpaQueryFactory() {
+       return new JPAQueryFactory(em);
+    }
+}
+```
