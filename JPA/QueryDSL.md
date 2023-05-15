@@ -828,3 +828,20 @@ public class QuerydslConfiguration {
     }
 }
 ```
+
+### 동적쿼리엔 BooleanExpression 사용
+* 동적쿼리를 작성하는 방법엔 3가지가 있다.
+  * BooleanBuilder 사용하는 방법
+  * where절 파라미터로 predicate를 사용하는 방법
+  * where절 파라미터로 predicate를 상속한 booleanExpression을 사용하는 방법
+* BooleanBuilder를 사용하는 방법은 어떤 쿼리가 나가는지 예측하기 힘들다는 단점이 있다.
+* Predicate보다는 BooleanExpression을 사용하는게 좋은 이유는, BooleanExpression은 and와 or같은 메서드들을 이용해 조합해서 새로운 BooleanExpression을 만들 수 있다는 장점이 있다. (재사용성이 높음)
+* 또한 BooleanExpression은 null을 반환하게 되면 where절에서 조건이 무시되기 때문에 안전하다.
+
+### exist 메서드 사용금지
+* Querydsl에 있는 exist는 count쿼리를 사용하기 때문에, Querdsl에서는 exist를 사용하지 않는것이 좋다.
+  * count쿼리는 SQL에서 exist와 같은 역할을 해줄 수 있기 때문
+* SQL exist 쿼리는 첫 번째로 조건에 맞는 값을 찾는다면 바로 반환하도록 하지만, count쿼리는 전체 행을 모두 조회하기 때문에 성능이 떨어진다.
+  * 스캔 대상이 앞에 있을수록 성능 차이는 심해짐
+* 따라서 Querydsl에서는 `fetchFirst()`를 사용하는게 좋다.
+  `fetchFirst()`의 내부 구현에는 `limit(1)`이 있어 결과를 한개만 가져오도록 하기 때문에 SQL exist문과 큰 차이가 없다.
