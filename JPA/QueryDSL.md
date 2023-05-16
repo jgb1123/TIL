@@ -845,3 +845,34 @@ public class QuerydslConfiguration {
   * 스캔 대상이 앞에 있을수록 성능 차이는 심해짐
 * 따라서 Querydsl에서는 `fetchFirst()`를 사용하는게 좋다.
   `fetchFirst()`의 내부 구현에는 `limit(1)`이 있어 결과를 한개만 가져오도록 하기 때문에 SQL exist문과 큰 차이가 없다.
+
+### Cross Join 피하기
+* 묵시적 조인이라고 하는, 조인을 명시하지 않고 엔티티에서 다른 엔티티를 조회해 비교하는 경우 JPA가 알아서 크로스 조인을 하게 된다.
+* 크로스 조인을 하게 되면 나올 수 있는 데이터가 그냥 조인들보다 많아지기 때문에 성능상의 단점이 있다.
+* 크로스 조인을 피하기 위해서는 쿼리를 보고 크로스 조인이 나간다면 명시적 조인을 이용해 해결해야 한다.
+
+### 조회할 땐 엔티티보다 DTO를 우선적으로 가져오기
+* 데이터베이스에서 엔티티를 가지고 오면 영속성 컨텍스트의 1차 캐시기능을 사용하게 되기도 하고, 불필요한 컬럼을 조회하기도 하며, N+1 문제(OneToOne에서 연관관계의 주인이 아닌 곳에서)가 생길 수도 있다.
+* 하지만 엔티티를 조회할 필요가 있는 경우도 있으므로, 기준을 두고 조회를 하는게 좋다.
+  * 실시간으로 엔티티 변경이 필요한 경우엔 엔티티 조회
+  * 성능 개선이나 대량의 데이터 조회가 필요한 경우엔 DTO조회
+
+```java
+public List<MemberTeamDto> findSameTeamMember(Long teamId) {
+    return queryFactory
+        .select(new QMemberTeamDto(
+                member.id,
+                member.username,
+                member.age,
+                Expressions.asNumber(teamId),
+                team.name
+        ))
+        .from(member)
+        .innerJoin(member.team, team)
+        .where(member.team.id.eq(teamId))
+        .fetch();
+}
+```
+* 위 예제의 경우 select절에 필요한 컬럼만 데이터 베이스에서 가져오도록 한다.
+* teamId의 경우 이미 기존에 매개변수로 받았으므로 데이터베이스에서 가져올 필요가 없으므로, 성능상에서 약간의 이득을 볼 수 있다.
+* 이 예제는 DTO클래스에 `@QueryProjection`을 해서 DTO도 Q타입 클래스를 만들도록 했기 때문에 기존 Projections보다 타입 세이프하다는 장점이 있지만, Querydsl에 더 의존적이라는 단점도 있다.
