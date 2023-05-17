@@ -876,3 +876,35 @@ public List<MemberTeamDto> findSameTeamMember(Long teamId) {
 * 위 예제의 경우 select절에 필요한 컬럼만 데이터 베이스에서 가져오도록 한다.
 * teamId의 경우 이미 기존에 매개변수로 받았으므로 데이터베이스에서 가져올 필요가 없으므로, 성능상에서 약간의 이득을 볼 수 있다.
 * 이 예제는 DTO클래스에 `@QueryProjection`을 해서 DTO도 Q타입 클래스를 만들도록 했기 때문에 기존 Projections보다 타입 세이프하다는 장점이 있지만, Querydsl에 더 의존적이라는 단점도 있다.
+
+### Group By 최적화하기
+* 일반적으로 MySQL에서 group by를 실행하면 group by 컬럼에 의한 Filesort라는 정렬 알고리즘이 추가적으로 실행된다. (이 쿼리는 index가 없다면 발생)
+* Filesort가 발생하면 상대적으로 느려지기 때문에, order by null을 사용하면 된다.
+* 하지만 Querydsl에서는 order by null을 지원하지 않는다.
+* 그렇기 때문에 OrderByNull이라는 클래스를 만들어 이를 통해 order by null을 지원하도록 할 수 있다.
+
+```java
+public class OrderByNull extends OrderSpecifier { 
+    public static final OrderByNull DEFAULT = new OrderByNull();
+    
+    private OrderByNull() {
+        super(Order.ASC, NullExpression.DEFAULT, NullHandling.Default);
+    }
+}
+```
+
+```java
+public List<Integer> useOrderByNull() {
+    return queryFactory
+        .select(member.age.sum())
+        .from(member)
+        .innerJoin(member.team, team)
+        .groupBy(member.team)
+        .orderBy(OrderByNull.DEFAULT)
+        .fetch();
+}
+```
+
+* order by null은 페이징 쿼리인 경우 사용하지 못한다.
+  * 추가적인 정보로 정렬을 해야 할 경우 100건 이하라면 애플리케이션 메모리로 가져와 정렬하는 것이 좋다.
+  * 일반적으로 DB자원보다 애플리케이션 자원이 더 싸기 때문에 효율적이다.
