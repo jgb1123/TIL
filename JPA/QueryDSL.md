@@ -908,3 +908,46 @@ public List<Integer> useOrderByNull() {
 * order by null은 페이징 쿼리인 경우 사용하지 못한다.
   * 추가적인 정보로 정렬을 해야 할 경우 100건 이하라면 애플리케이션 메모리로 가져와 정렬하는 것이 좋다.
   * 일반적으로 DB자원보다 애플리케이션 자원이 더 싸기 때문에 효율적이다.
+
+### 커버링 인덱스 사용하기
+> 커버링 인덱스
+> * 원하는 데이터를 인덱스에서만 추출할 수 있는 인덱스이다.
+> * B-Tree 스캔만으로 원하는 데이터를 가져올 수 있으며, 컬럼을 읽기 위해 굳이 데이터 블록을 보지 않아도 된다.
+> * 인덱스는 행 전체 크기보다 훨씬 작으며, 인덱스 값에 따라 정렬되기 때문에 Sequential Read 접근할 수 있기 때문에 커버링 인덱스를 사용하면 결과적으로 쿼리 성능을 비약적으로 올릴 수 있다.
+> * 쿼리 내 모든 항목이 인덱스 칼럼으로만 이루어 지게 되며 인덱스 내부에서 쿼리가 완성되므로, DB 데이터 블록을 가져오지 않고 I/O만으로 이뤄지기 때문에 성능이 올라간다고 생각하면 된다.
+* 커버링 인덱스는 쿼리를 충족시키는데 필요한 모든 컬럼을 가지고 있는 인덱스이다.
+* select, where, ordre by, group by 등에서 사용되는 모든 컬럼이 인덱스에 포함된 상태로, No Offset 방식과 더불어 페이지 조회성능을 향상시키는 가장 보편적인 방법이다.
+* 커버링 인덱스를 사용할 땐 from절에 subQuery에서 커버링 인덱스를 통해 필터를 하도록 하는게 보편적인데, Querydsl에서 JPQL은 from절에서 서브쿼리를 지원하지 않는다.
+* 해결 방법은 두번의 select절을 이용하는 것이다.
+  * 첫 번째 select절로 커버링 인덱스를 활용해 조회대상의 PK를 조회한다.
+  * 그 후, 두 번째 select절로 해당 PK로 필요한 컬럼 항목들을 조회한다.
+
+```java
+public List<MemberDto> useCoveringIndex(int offset, int limit) {
+    List<Long> ids = queryFactory
+        .select(member.id)
+        .from(member)
+        .where(member.username.like("member%"))
+        .orderBy(member.id.desc())
+        .limit(limit)
+        .offset(offset)
+        .fetch();
+
+    if(ids.isEmpty()) {
+        return new ArrayList<>();
+    }
+
+    return queryFactory
+        .select(new QMemberDto(
+                member.username,
+                member.age
+        ))
+        .from(member)
+        .where(member.id.in(ids))
+        .orderBy(member.id.desc())
+        .fetch();
+}
+```
+* 이 방식의 단점은 너무 많은 인덱스가 생길 수 있다는 점이지만, 결국 쿼리의 모든 항목이 인덱스로 필요하기 때문에 느린 쿼리가 발생할 때마다 새로운 신규 인덱스가 생성될 수 있다.
+* 인덱스의 크기도 점점 커질 수 있는데 인덱스도 결국 데이터이기 때문에 들어가는 항목이 많아진다면 인덱스가 비대해진다는 단점이 있다.
+
