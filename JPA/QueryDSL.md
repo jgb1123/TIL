@@ -951,3 +951,47 @@ public List<MemberDto> useCoveringIndex(int offset, int limit) {
 * 이 방식의 단점은 너무 많은 인덱스가 생길 수 있다는 점이지만, 결국 쿼리의 모든 항목이 인덱스로 필요하기 때문에 느린 쿼리가 발생할 때마다 새로운 신규 인덱스가 생성될 수 있다.
 * 인덱스의 크기도 점점 커질 수 있는데 인덱스도 결국 데이터이기 때문에 들어가는 항목이 많아진다면 인덱스가 비대해진다는 단점이 있다.
 
+### 페이징 성능 개선을 위해 No Offset 사용
+* 기존 페이징 방식인 offset과 limit을 이용한 방식은 서비스가 커지면 장애를 유발할 수도 있다.
+* 초기엔 데이터가 적어 문제가 없지만, offset을 이용하면 offset + limit만큼의 데이터를 읽어야 하기 때문에 데이터가 점점 많아지면 느려진다.
+* offset을 이용하는 sql문은 아래와 같다.
+```sql
+SELECT *
+FROM items 
+WHERE 조건문
+ORDER BY id desc 
+OFFSET 페이지 번호
+LIMIT 페이지 사이즈
+```
+* offset을 이용한 형태는 페이지 번호가 뒤로 갈수록 앞에서 읽었던 행을 다시 읽어야 한다.
+* No Offset방식은 시작 지점을 인덱스로 빠르게 찾아 첫 페이지부터 읽도록 하는 방식이다.
+* No Offset을 이용하는 sql문은 아래와 같다.
+```sql
+SELECT *
+FROM items
+WHERE 조건문
+AND id < 마지막 조회 ID
+ORDER BY id desc
+LIMIT 페이지 사이즈 
+```
+* 이전에 조회된 결과를 한번에 건너뛸 수 있게 마지막 조회 결과의 ID를 조건문에 사용하는 방식이다.
+* querydsl에서 NoOffset을 적용하는 방법은 아래와 같다.
+```java
+public List<MemberDto> noOffset(Long lastMemberId, int limit) {
+    return queryFactory
+        .select(new QMemberDto(
+                member.username,
+                member.age
+        ))
+        .from(member)
+        .where(member.username.contains("member")
+        .and(memberIdLt(lastMemberId)))
+        .orderBy(member.id.desc())
+        .limit(limit)
+        .fetch();
+}
+
+private BooleanExpression memberIdLt(Long lastMemberId) {
+    return lastMemberId != null ? member.id.lt(lastMemberId): null;
+} 
+```
