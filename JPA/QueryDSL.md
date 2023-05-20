@@ -995,3 +995,31 @@ private BooleanExpression memberIdLt(Long lastMemberId) {
     return lastMemberId != null ? member.id.lt(lastMemberId): null;
 } 
 ```
+
+### 일괄 Update로 최적화
+* JPA를 사용하면 영속성 컨텍스트가 Dirty Checking 기능을 지원해주는데, 엄청나게 많은 양의 데이터에 대해 업데이트 쿼리가 나갈수도 있다.
+* 이러면 일괄 Update하는 것 보다 성능이 확연하게 안좋아진다.
+* 아래는 DiryChecking 예제이다.
+```java
+private void dirtyChecking() {
+    List<Member> result = queryFactory
+        .selectFrom(member)
+        .fetch();
+    
+    for (Member member : result){
+        member.setUsername(member.getUsername() + "+");
+    }
+}
+```
+* 아래는 Querydsl 일괄 업데이트 예제이다.
+```java
+public void batchUpdate() {
+    queryFactory
+        .update(member)
+        .set(member.username, member.username + "+")
+        .execute();
+}
+```
+* 일괄 update방식은 영속성 컨텍스트의 1차캐시 갱신이 안되기 때문에 Cache Eviction이 필요하다.
+  * cach Eviction은 캐시가 가득 차거나 데이터가 더이상 필요하지 않을 때 캐시에서 데이터를 제거하는 과정이다.
+* 그러므로 실시간 비즈니스 처리나 실시간 단건처리가 필요하다면 Dirty Checking기능을 이용하고, 대량의 데이터를 일괄적으로 업데이트해야 필요한 경우 일괄 update방식을 사용하면 된다. 
