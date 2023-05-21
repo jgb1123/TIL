@@ -1022,4 +1022,16 @@ public void batchUpdate() {
 ```
 * 일괄 update방식은 영속성 컨텍스트의 1차캐시 갱신이 안되기 때문에 Cache Eviction이 필요하다.
   * cach Eviction은 캐시가 가득 차거나 데이터가 더이상 필요하지 않을 때 캐시에서 데이터를 제거하는 과정이다.
-* 그러므로 실시간 비즈니스 처리나 실시간 단건처리가 필요하다면 Dirty Checking기능을 이용하고, 대량의 데이터를 일괄적으로 업데이트해야 필요한 경우 일괄 update방식을 사용하면 된다. 
+* 그러므로 실시간 비즈니스 처리나 실시간 단건처리가 필요하다면 Dirty Checking기능을 이용하고, 대량의 데이터를 일괄적으로 업데이트해야 필요한 경우 일괄 update방식을 사용하면 된다.
+
+### JPA로 Bulk Insert는 자제
+* JDBC에는 rewriteBatchedStatements로 Insert 합치기라는 옵션이 있다.
+* JPA는 auto_increment 일때 insert 합치기가 적용되지 않는다.
+
+___
+참고
+
+[인프런 김영한님의 실전! Querydsl](https://www.inflearn.com/course/querydsl-%EC%8B%A4%EC%A0%84)
+
+[[우아콘2020] 수십억건에서 Querydsl 사용하기](https://www.youtube.com/watch?v=zMAX7g6rO_Y)
+
