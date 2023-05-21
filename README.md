@@ -21,6 +21,7 @@
 * [JPQL](https://github.com/jgb1123/TIL/blob/main/JPA/JPQL.md)
 * [JPA 개념](https://github.com/jgb1123/TIL/blob/main/JPA/JPA%EA%B0%9C%EB%85%90.md)
 * [JPA 심화](https://github.com/jgb1123/TIL/blob/main/JPA/JPA%EC%8B%AC%ED%99%94.md)
+* [QueryDSL](https://github.com/jgb1123/TIL/blob/main/JPA/QueryDSL.md)
 
 ## Spring
 * [Spring 입문](https://github.com/jgb1123/TIL/blob/main/Spring/SpringBasic.md)
