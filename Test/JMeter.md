@@ -38,3 +38,45 @@
 * JMeter를 통해 테스트한 결과 정보나 상태 정보를 표시한다.
 * 일반적으로는 Graph Result를 이용해 진행되는 추이를 그래프로 확인한다.
 * 수집된 정보는 XML, CSV로도 저장이 가능하다.
+
+### Timers
+* JMeter의 테스트 플랜에 샘플러를 등록하면 순차적으로 진행이 되지만, 실제 사용자들이 요청을 순차적으로 매우 빠른 시간내에 수행하는것은 불가능하다.
+* 따라서 요청과 요청 사이에 특정한 시간 간격을 두려면 Timers를 이용해 설정할 수 있다.
+
+### Assertion
+* JMeter의 HTTP 프로토콜을 이용해 성능 테스트를 할 경우, 요청별 성공/실패 여부는 HTTP 응답코드의 값을 이용해 판단한다.
+* HTTP 응답코드가 200번대면 성공, 그외에 다른 코드값들은 실패이며, JMeter에서도 이와 같이 200번대 코드가 리턴되면 테스트는 성공이다.
+* 하지만 200번대 코드가 리턴되더라도 실패로 판단해야 하는 경우도 많이 있으므로, 이 경우 Assertion을 이용해 응답 정보에 특정한 메시지를 필터링해 성공/실패 여부를 판단할 수 있다.
+
+### Configuration Elements
+* 직접적으로 요청을 수행하지는 않지만 샘플러의 요청 정보를 관리할 수 있다.
+* 예시로, 테스트 플랜이 복잡해 HTTP Request Sampler 작성을 많이 해야 하는데 서버 IP나 포트와같이 공통적으로 많이 사용되는 부분이 있다면 Configuration Elements의 HTTP Request Defaults에 설정하면 된다.
+  * 해당 설정 정보가 관련된 HTTP Request에 모두 적용된다.
+
+### Pre-Processor Elements
+* 샘플러를 실행하기 전에 수행해야 할 내용을 정의한다.
+* 요청을 하기 전에 파라미터 값을 초기화를 하는 것과 같은 작업에 사용한다.
+
+### Post-Processor Elements
+* 샘플러를 실행한 후에 수행해야 할 내용을 정의한다.
+
+### 우선순위
+* 위와같은 항목들은 JMeter 실행 시 우선순위가 존재한다.
+* Configuration -> Pre-Processor -> Timer -> Sampler -> Post-Processor -> Assertion -> Listener
+* JMeter가 테스트를 수행할 때 작성된 테스트 플랜과 Thread Group에 정의되어 있는 내용 중 위의 순서규칙을 참조해 동작한다.
+* 이와같은 개념을 정확히 이해해야 정확한 결과를 얻을 수 있다.
+
+## Test Plan 설정
+* Test Plan의 이름과 설명이 영향을 주지는 않지만, 향후 여러 버전이나 여러 대상 애플리케이션을 작업해야 한다면 이름과 설명을 제대로 작성하는 것이 좋다.
+* 추가적으로 실행에 직접적으로 영향을 주는 옵션이 제공되는데, 일반적으로는 잘 사용은 하지 않지만 알고는 있으면 좋다.
+
+### User Defined Variables
+* 변수 선언이 필요할 때 사용한다.
+* 테스트 전반에 걸쳐서 선언한 변수와 값을 이용할 수 있다.
+
+### Run Thread Groups consecutively
+* Test Plan에 여러 개의 Thread Group이 있는 경우, 이 옵션을 사용하면 병렬로 동작하는 것이 아니라 순차적으로 실행된다.
+
+### Run tearDown Thread Groups after shutdown of main threads
+* 테스트를 종료한 후 후속 테스트를 수행하도록 설정할 수 있다.
+* 이 기능을 사용하기 위해선 별도의 tearDown Thread Group을 설정해야 한다.
