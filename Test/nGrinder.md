@@ -35,3 +35,37 @@
 * 초기 계정의 ID, PW는 admin, admin이므로 해당 ID와 PW로 접속한다.
   * nGrinder Admin Web > admin > User Management에서 admin이외의 불필요한 계정은 모두 삭제한다.
   * admin클릭 후 Change Password를 통해 안전한 비밀번호로 변경한다.
+
+
+## Agent 다운로드
+* nGrinder Admin Web > admin > Download Agent로 들어가서 agent파일을 직접 다운로드하거나 wget으로 다운로드한다.
+  * `wget http://localhost:{포트번호}/agent/download/ngrinder-agent-{version}-localhost.tar`
+* 압축을 풀고 에이전트 폴더로 이동한다.
+  * `tar -xvf ngrinder-agent-{version}-localhost.tar`
+  * `cd ngrinder-agent`
+* ngrinder-agent 폴더의 __agent.conf 파일에 컨트롤러의 호스트 명과 포트가 포함되어 있다.
+  * `cat __agent.conf | grep agent.controller`
+  ```
+  common.start_mode=agent
+  agent.controller_host=localhost
+  agent.controller_port=16001
+  agent.region=NONE
+  ```
+* `./run_agent.sh` 혹은 백그라운드 모드의 경우 `./run_agent_bg.sh`로 실행한다.
+
+## 테스트
+### 스크립트 작성
+* nGrinder Admin Web > Script > +Create > Create a script로 들어간다.
+* 스크립트 종류는 Groovy로 하고, 스크립트 이름을 정한다.
+* URL to be tested에 테스트할 URL을 적는다.
+* 스크립트를 생성 후 Validate를 클릭하고, 이상이 없으면 Save/Close를 클릭한다.
+
+### Performance Test 생성하기
+* Perfomance Test > Create Test로 들어가 원하는 테스트 설정을 한다.
+* Test이름, Agent수, Vuser per agent, 스크립트 종류, 스크립트 이름, Duration등을 설정한다.
+* 설정 후 Save and Start를 클릭한다.
+
+### 테스트 결과
+* 테스트 실행시에도 라이브로 테스트가 진행되는 것을 볼 수 있다. 
+* 테스트 종료 이후에는 전체 테스트 Summary와 Detailed Report를 통해 더 자세하게 결과를 확인할 수 있다.
+
