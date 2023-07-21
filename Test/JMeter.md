@@ -15,10 +15,6 @@
   * 많은 리스너가 존재할 경우 설정을 일일이 해줘야 해서 귀찮다.
 * 스레드 기반이라 성능 제약이 있다.
 
-## 설치
-* [Apache Jmeter 다운로드 페이지](https://jmeter.apache.org/download_jmeter.cgi)에서 설치를 한다.
-* 압축을 푼 폴더 아래 bin폴더로 가서 jmeter실행하면 GUI가 나타난다.
-
 ## JMeter 용어
 ### Thread Group
 * Thread Group은 모든 테스트 플랜 작성의 시작 지점으로, Thread Group 아래에 모든 컨트롤러와 샘플러가 위치한다.
@@ -159,8 +155,45 @@
   * 그렇지 않으면 네트워크 병목이나 속도로 인해 정확한 수치를 확인하기 어렵다.
 * 좀더 정확한 정보나 대규모 부하 테스트를 할 경우 원격 테스트를 주로 사용한다.
 
-## JMeter 마무리
+## JMeter 정리
 * 부하 테스트는 정확한 전략, 절차, 목표 없이 이루어지면 아무 의미가 없다.
 * 충분히 사전에 준비하고 고려한 내용을 바탕으로 테스트를 수행하고 튜닝을 반복해서 진행해야 한다.
 * JMeter는 웹 기반 애플리케이션의 부하 테스트뿐만 아니라 다양한 프로토콜 기반의 부하를 발생시키고 이에 대한 결과를 그래픽하게 표현해주는 기능을 제공한다.
 * 다른 상용 부하 테스트 도구에 비해 부하 모델 설정이나 실시간 변경 등의 기능이 부족하긴 하지만, 정확히 이해하고 사용한다면 부하 테스트를 검증하고 이를 이해하는데 충분히 적합한 도구이다.
+
+## JMeter를 사용한 테스트
+### 유의사항
+* 테스트 하는 웹 어플리케이션 서버와 테스트를 돌리는 서버는 서로 달라야 한다.
+* 웹 어플리케이션 서버와 JMeter를 돌리는 서버가 같으면 같은 메모리를 사용하기 때문에 정확한 값을 측정할 수 없다.
+
+### JMeter 설치
+* [Apache Jmeter 다운로드 페이지](https://jmeter.apache.org/download_jmeter.cgi)에서 설치를 한다.
+* 압축을 푼 폴더 아래 bin폴더로 가서 jmeter실행하면 GUI가 나타난다.
+
+### 테스트 생성
+* File -> New -> Test Plan Name을 설정한다.
+
+### Thread Group
+* 테스트할 유저 수를 설정한다.
+* 만든 테스트를 오른쪽클릭 -> Add -> Threads -> Thread Group
+  * Number of Threads : 쓰레드 수
+  * Ramp-up period : 쓰레드 수를 만드는데 소요되는 시간
+  * Loop Count : 쓰레드당 수행할 테스트 횟수
+
+### Sampler
+* 만든 Thread Group 오른쪽 클릭 -> Add -> Sampler -> HTTP Request
+  * Server Name or IP : localhost
+  * Port Number : 8080
+  * HTTP Request : GET `uri`
+
+### Listener
+* 만든 Sampler가 받아오는 리턴 값을 바탕으로 그래프, 레포팅을 만들어준다.
+* 만들어놓은 HTTP Request 오른쪽 클릭 -> Add -> Listener -> View Results Tree, Summary Report, View Results in Table 생성
+
+### Assertion
+* 응답값이 제대로 왔는지 검증한다.
+* 만든 HTTP Request 오른쪽 클릭 -> Add -> Assertions -> Response Assertion
+* Text Response 클릭 -> 맨 아래 Add 클릭 -> 추가된 Patterns to Test에 검사할 문자열 입력
+
+### 테스트 실행
+* 테스트 실행 버튼을 클릭하여 테스트를 진행한다.
