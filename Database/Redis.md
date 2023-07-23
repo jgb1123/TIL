@@ -25,3 +25,60 @@
 * Redis는 싱글 쓰레드 방식을 사용하여 한 번에 하나의 명령어만 처리한다.
 * 따라서 연산이 원자성(Atomicity)을 갖고 처리하기 때문에 Race Condition이 거의 발생하지 않는다.
 
+## Redis 설정
+### build.gradle
+```groovy
+dependencies {
+    ...
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    ...
+}
+```
+
+### application.yml
+```yaml
+spring:
+  cache:
+    type: redis
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 1
+```
+
+### RedisConfig.class
+```java
+@Configuration
+public class RedisConfig {
+    @Value("${spring.data.redis.host}")
+    private String host;
+
+    @Value("${spring.data.redis.port}")
+    private int port;
+
+    @Bean
+    public RedisConnectionFactory redisConnectionFactory() {
+        return new LettuceConnectionFactory(new RedisStandaloneConfiguration(host, port));
+    }
+
+    @Bean
+    public RedisTemplate<String, String> redisTemplate() {
+        RedisTemplate<String, String> redisTemplate = new RedisTemplate<>();
+        redisTemplate.setKeySerializer(new StringRedisSerializer());
+        redisTemplate.setValueSerializer(new StringRedisSerializer());
+        redisTemplate.setConnectionFactory(redisConnectionFactory());
+        return redisTemplate;
+    }
+    
+    @Bean
+    public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+        RedisCacheConfiguration configuration = RedisCacheConfiguration.defaultCacheConfig()
+                .disableCachingNullValues()
+                .entryTtl(Duration.ofHours(timeout))
+                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer())) // redis 캐시 키 저장방식을 StringSeriallizer로 지정
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer())); // redis 캐시 값 저장방식을 GenericJackson2JsonRedisSerializer로 지정
+        
+        return RedisCacheManager.RedisCacheManagerBuilder.fromConnectionFactory(connectionFactory).cacheDefaults(configuration).build();
+    }
+}
+```
