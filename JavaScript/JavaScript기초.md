@@ -88,3 +88,83 @@ console.log(arr3 == arr4); // 참조하는 곳이 같으므로 true
 | x /= y  | x = x / y  |
 | x %= y  | x = x % y  |
 
+## 함수
+* 함수는 처리 작업을 하나로 모아 이름을 지정하여 작업을 반복하여 사용하고 싶을 때 사용한다.
+```javascript
+function myFunction(a) {
+        const result = a + 1;
+    return result;
+}
+const functionResult = myFunction(1);
+console.log(functionResult);  // 결과 2
+```
+* 파라미터 개수는 제한이 없으며 ,로 구분한다.
+* 파라미터가 없는 함수도 있다.
+* return 구문으로 함수가 종료되며, 하나의 함수에서 return 구문으로 여러 값을 반환할 수 있다.
+  * 배열 사용 
+    ```javascript
+    function getValues() {
+      const value1 = 1;
+      const value2 = 2; 
+      return [value1, value2];
+    }
+
+    const values = getValues();
+    console.log(values[0]);  // 결과 1
+    console.log(values[1]);  // 결과 2
+    ```
+  * 객체 사용
+    ```javascript
+    function getValues() {
+      const value1 = 1;
+      const value2 = 2;
+      return {
+        value1,
+        value2
+      };
+    }
+    
+    const values = getValues();
+    console.log(values.value1); // 결과 1
+    console.log(values.value2); // 결과 2
+    ```
+
+### 화살표 함수
+* 함수를 간략히 기술하고 싶거나 this로 묶고 싶을 때는 화살표 함수를 사용한다.
+```javascript
+const numberSum = (a, b, c) => {
+  const result = a + b + c;
+  return result;
+};
+```
+* 파라미터가 하나인 경우는 소괄호를 생략 가능하며 파라미터가 0개 혹은 2개 이상이면 생략 불가능하다.
+```javascript
+const myFunction = a => {
+  return a + 1;
+};
+```
+
+### 파라미터
+* 초기값이 설정된 파라미터는 값을 전달받지 않으면 디폴트 파라미터를 사용한다.
+```javascript
+function myFunction(a, b = 2) { // b의 인수를 생략하면 초기값 2가 적용된다.
+  const result = a + a * b;
+  return result;
+} 
+```
+* 임의의 파라미터를 가지는 함수를 정의하고 싶으면 `...파라미터`를 사용하면 된다.
+```javascript
+function numberSum(...prices) {
+  let result = 0;
+  for(const value of prices) {
+    result += value;
+  }
+}
+const result = numberSum(1, 2);
+console.log(result); // 결과 3
+```
+
+## 조건문
+### if
+* 자바스크립트는 if, else if, else를 사용하여 조건에 따른 처리가 가능하다
+* if 단독으로도 사용 가능하며 else if를 생략한 if, else절도 가능하다.
