@@ -168,3 +168,68 @@ console.log(result); // 결과 3
 ### if
 * 자바스크립트는 if, else if, else를 사용하여 조건에 따른 처리가 가능하다
 * if 단독으로도 사용 가능하며 else if를 생략한 if, else절도 가능하다.
+```javascript
+const age = 28;
+
+if(age >= 40 {
+  alert('age는 30 이상');
+} else if (age >= 20) {
+  alert('age는 20 이상 30 미만');
+} else {
+  alert('age는 20 미만');
+}
+// age는 20 이상 30 미만 출력
+```
+
+### switch
+* swtich문은 case값이 조건식에 만족 시 처리되며, 만족되는 조건이 하나도 없으면 default값으로 처리된다.
+* break는 종료하는 명령문이다.
+```javascript
+const bloodType = 28;
+
+switch(age) {
+  case 'A':
+    alert('A형');
+    break;
+  
+  case 'B':
+    alert('B형');
+    break;
+  
+  case 'AB':
+    alert('AB형');
+    break;
+  
+  default:
+    alert('O형');
+    break;
+}
+```
+* switch 식은 값만 비교하는 `==`와 달리 값과 타입의 비교 둘 다 이루어진다.
+
+## 반복문
+### for문
+* for문은 반복 작업을 처리하며 대량의 데이터를 처리하거나 배열을 다룰 때 유용하다.
+```javascript
+for(let i = 0; i < 5; i++) {
+  console.log(i);
+}
+// 0부터 4까지 순서대로 출력
+```
+
+### while문
+* while문은 조건을 만족하면 계속 반복 작업을 처리하며 for문과 유사하나 반복 조건만을 지정한다.
+* 코드를 통해 반복 종료 시점을 지정해야 한다.
+```javascript
+let i = 0;
+while(i < 5) {
+  console.log(i);
+  i += 1;
+}
+// 0부터 4까지 순서대로 출력
+```
+
+### continue
+* for문과 while문의 반복 처리 작업 중 예외가 필요할 경우 사용한다.
+* continue문을 사용하면 해당 루프의 작업을 실행하지 않고 넘어간다.
+
