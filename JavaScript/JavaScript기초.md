@@ -271,4 +271,28 @@ while(i < 5) {
 * 웹사이트에 유저의 정보를 저장하는 것이다.
 * 서버와 데이터를 공유하는 용도로 사용되며 데이터의 유효기간을 정할 수 있다.
 * 장점으로는 대부분의 브라우저가 지원을 한다는 점이지만, 단점으로는 4kb 데이터 저장 제한으로 사이즈가 매우 작으며 서버에 매 HTTP 요청으로 데이터 전달 낭비가 발생할 수 있다.
-* 
+
+### 로컬 스토리지
+* 가볍지만 기능이 많지 않고 단순히 key와 value를 String 타입으로 저장하는 기능만 있다.
+* 최대 저장 용량은 5~10MB로 제한하여 간단한 텍스트만 담을 수 있지만 만료기간 없이 저장이 가능하여 자동 로그인과 같은 곳에 사용된다.
+
+```javascript
+localStorage.setItem('age', 30); // 'age'라는 키에 '30'이라는 값을 저장
+localStorage.getItem('age') // 'age'라는 키에 저장된 값인 '30'을 반환
+localStorage.removeItem('age'); // 'age'라는 키에 저장된 값을 제거
+
+localStorage.setItem('name', 'JGB');
+console.log(localStorage.length) // 1 출력
+localStorage.clear(); // 로컬 스토리지를 완전히 비움
+console.log(localStorage.length) // 0 출력
+```
+
+### 세션 스토리지
+* 로컬 스토리지와 달리 만료기간이 있어 브라우저를 종료하거나 새탭을 열 때 데이터가 초기화된다.
+  * 로컬 스토리지와 세션 스토리지의 차이는 영구성이다.
+* 입력폼 정보 저장, 비로그인 장바구니, 글쓰기 도중 내용 복구 등과 같은 자동 임시 저장 용도로 사용한다.
+* 사용법은 로컬스토리지와 동일하다. 
+  ```javascript
+  sessionStorage.setItem('age', 30); // localStorage의 메서드들과 메서드 동일
+  ```
+
