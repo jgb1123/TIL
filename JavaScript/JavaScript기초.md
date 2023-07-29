@@ -43,6 +43,51 @@
 * 컴포넌트 기반 아키텍처로 재사용성과 구조화된 개발을 장려한다.
 * 라이브러리 중심으로 생태계가 풍부하여 다양한 기능을 지원한다.
 
+## 출력문
+### HTML 문서에 출력
+* HTML 문서에 출력하는 형태로, 페이지가 모두 로딩된 다음에 실행하면 원래 있던 HTML 화면내용은 지워진다.
+```html
+<script>
+document.write(1 + 2); // 1+2의 연산결과를 웹브라우저에 출력
+</script>
+
+<body>
+<h2>Hello World</h2>
+</body>
+```
+
+### HTML 문서의 측정 부분에 출력
+* HTML문서의 특정 요소를 찾아 해당 콘텐츠를 대체해 출력한다.
+* 가장 보편적으로 HTML문서를 동적으로 핸들링하는 방법이다.
+```html
+<script>
+document.getElementById("result").innerHTML = 1 + 2;
+</script>
+
+<body>
+<h2>Hello World</h2>
+<div id="result">
+</div>
+</body>
+```
+
+### Alert 창을 이용한 출력
+* 웹 브라우저에 오픈되는 조그만 경고창을 이용한 출력이다.
+* alert()를 사용하며 보통 프로그램에서 에러, 경고, 사용자 입력을 위해 많이 사용한다.
+```html
+<script>
+alert(1 + 2);
+</script>
+```
+
+### 브라우저 콘솔창을 이용한 출력
+* 자바스크립트 코드에서 진행상황을 출력하거나 개발을 위해 참고하기 위한 값들을 출력하기 위한 용도로 사용한다.
+```html
+<script>
+console.log(1 + 2);
+</script>
+```
+
 ## 변수
 * let은 데이터 값 변경이 가능한 변수이며, const는 데이터 값의 수정이 불가능한 상수이다.
 ```javascript
