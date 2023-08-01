@@ -133,6 +133,31 @@ console.log(1 + 2);
 * 문자열에서 특정 부분만 추출할 때 사용하는 메서드이다.
 * `string.substr(startIndext, length)` 형태로 사용 가능하다.
 
+#### string.substring()
+* 문자열에서 지정한 위치의 부분 문자열을 추출하는 메서드이다.
+* `string.substring(startIndex, endIndex)` 형태로 사용하며, endIndex를 생략하면 문자열 끝까지 추출된다.
+
+#### string.slice()
+* 자바스크립트에서 문자열을 추출하는데 사용되는 메서드이다.
+* `string.slice(startIndex, endIndex)` 형태로 사용하며, substring()과 비슷하지만, 약간의 차이가 있다.
+  * 음수 값을 허용하며, startIndex와 endIndex가 순서에 영향을 받지 않는다.
+
+#### string.split()
+* 문자열을 지정된 구분자를 기준으로 나누어 배열로 변환하는데 사용하는 메서드이다.
+* `string.split(separator, limit)` 형태로 사용되며, separator는 분리할 때 사용할 구분자이며 정규식을 사용할 수 있고, limit은 분리할 문자열의 최대 개수를 제한하며 생략하면 모든 가능한 구분자를 기준으로 분리된다.
+
+#### string.toUpperCase()
+* 문자열을 모두 대문자로 변환하는데 사용되는 메서드이다.
+
+#### string.toLowerCase()
+* 문자열을 모두 소문자로 변환하는데 사용되는 메서드이다.
+
+#### string.trim()
+* 문자열 앞과 뒤의 공백을 제거하는데 사용되는 메서드이다.
+
+#### string.replace()
+* 문자열에서 특정 패턴을 찾아 다른 문자열로 치환하는데 사용하는 메서드이다
+* `string.replace(searchValue|regexp, replaceValue)` 형태로 사용되며, searchValue|regexp는 치환하고자 하는 문자열이나 정규식 패턴이고, replaceValue는 찾은 부분을 대체할 문자열이다. 
 
 ## 변수
 * let은 데이터 값 변경이 가능한 변수이며, const는 데이터 값의 수정이 불가능한 상수이다.
