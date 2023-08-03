@@ -1,7 +1,11 @@
 # TIL(Today I Learned)
+## JavaScript
+* [JavaScript 기초](https://github.com/jgb1123/TIL/blob/main/JavaScript/JavaScript%EA%B8%B0%EC%B4%88.md)
+
 ## Test
 * [JUnit](https://github.com/jgb1123/TIL/blob/main/Test/JUnit.md)
 * [JMeter](https://github.com/jgb1123/TIL/blob/main/Test/JMeter.md)
+* [nGrinder](https://github.com/jgb1123/TIL/blob/main/Test/nGrinder.md)
 
 ## CleanCode
 * [Clean Code](https://github.com/jgb1123/TIL/blob/main/CleanCode/CleanCode.md)
@@ -37,6 +41,7 @@
 
 ## DataBase
 * [DataBase 기초](https://github.com/jgb1123/TIL/blob/main/Database/Database.md)
+* [Redis](https://github.com/jgb1123/TIL/blob/main/Database/Redis.md)
 
 ## Network
 * [Network 기초](https://github.com/jgb1123/TIL/blob/main/Network/Network.md)
