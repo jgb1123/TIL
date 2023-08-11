@@ -99,12 +99,12 @@ Object.defineProperty(viewModel, 'str', {
       
   </div>
 <script>
-    let vm = new Vue({
-        el: '#app',
-        data: {
-            message: 'hi'
-        }
-    });
+  let vm = new Vue({
+    el: '#app',
+    data: {
+      message: 'hi'
+    }
+  });
 </script>
 </body>
 ```
@@ -120,21 +120,133 @@ Object.defineProperty(viewModel, 'str', {
 * 전역과 지역으로 컴포넌트를 생성할 수 있다.
 ```html
 <script>
-    // 전역 컴포넌트
-    Vue.component('app-header', {
-        template: '<h1>Header</h1>'
-    });
+  // 전역 컴포넌트
+  Vue.component('app-header', {
+    template: '<h1>Header</h1>'
+  });
     
-    new Vue({
-        el: '#app',
-        // 지역 컴포넌트
-        components: {
-            'app-footer' : {
-                template: '<footer>footer</footer>'
-            }
-        }
-    });
+  new Vue({
+    el: '#app',
+    // 지역 컴포넌트
+    components: {
+      'app-footer' : {
+        template: '<footer>footer</footer>'
+      }
+    }
+  });
 </script>
 ```
 * 인스턴스가 여러 개 있으면 전역 컴포넌트는 어떤 인스턴스에서도 다 사용 가능하지만, 지역 컴포넌트는 해당 컴포넌트를 선언한 인스턴스에서만 사용 가능하다.
+
+## 컴포넌트 통신
+* 데이터는 한 방향으로만 움직이는 것이 아니라 유기적으로 다양한 통신을 하는 경우가 대다수이기 때문에 컴포넌트 통신 규칙이 필요하게 된다.
+
+### props(프롭스)
+* 상위 컴포넌트에서 하위로 데이터를 내려줄 때 사용한다.
+* 상위 컴포넌트에서 하위 컴포넌트를 적용할 때 값을 설정해서 사용할 수 있다.
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+</head>
+<body>
+  <div id="app">
+    <!-- <app-header v-bind:프롭스 속성 이름="상위 컴포넌트의 데이터 이름"></app-header> -->
+    <app-header v-bind:propsdata="message"></app-header>
+    <app-content v-bind:propsdata="num"></app-content>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script>
+    var appHeader = {
+      template: '<h1></h1>',
+      props: ['propsdata']
+    }
+    var appContent = {
+      template: '<div></div>',
+      props: ['propsdata']
+    }
+
+    new Vue({
+      el: '#app',
+      components: {
+        'app-header': appHeader,
+        'app-content': appContent
+      },
+      data: {
+        message: 'hi',
+        num: 10
+      }
+    })
+  </script>
+</body>
+</html>
+```
+
+### emit(이벤트)
+* 하위컴포넌트에서 상위컴포넌트로 이벤트를 올려줄 때 사용한다.
+* 하위 컴포넌트의 특정 부분에서 사용되는 메서드를 상위 컴포넌트에서 정의할 수 있다.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+</head>
+<body>
+  <div id="app">
+    <p></p>
+    <!-- <app-header v-on:하위 컴포넌트에서 발생한 이벤트 이름="상위 컴포넌트의 메서드 이름"></app-header> -->
+    <app-header v-on:pass="logText"></app-header>
+    <app-content v-on:increase="increaseNumber"></app-content>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script>
+    var appHeader = {
+      template: '<button v-on:click="passEvent">click me</button>',
+      methods: {
+        passEvent: function() {
+          this.$emit('pass');
+        }
+      }
+    }
+    var appContent = {
+      template: '<button v-on:click="addNumber">add</button>',
+      methods: {
+        addNumber: function() {
+          this.$emit('increase');
+        }
+      }
+    }
+
+    var vm = new Vue({
+      el: '#app',
+      components: {
+        'app-header': appHeader,
+        'app-content': appContent
+      },
+      methods: {
+        logText: function() {
+          console.log('hi');
+        },
+        increaseNumber: function() {
+          this.num = this.num + 1;
+        }
+      },
+      data: {
+        num: 10
+      }
+    });
+  </script>
+</body>
+</html>
+```
 
