@@ -250,3 +250,167 @@ Object.defineProperty(viewModel, 'str', {
 </html>
 ```
 
+### 같은 레벨에서의 컴포넌트 통신 방법
+* 상위에서 하위, 하위에서 상위 간의 통신이 아닌 같은 레벨에서의 컴포넌트 통신이 필요할 수 있다.
+* 하위 컴포넌트1과 하위 컴포넌트2가 있을때, 하위 컴포넌트1에서 상위컴포넌트로 emit으로 통신 시 파라미터 값을 넘겨주고 상위 컴포넌트와 하위 컴포넌트2를 props로 통신 시 사용하는 변수값을 emit을 정의한 메서드에서 변경해주는 방법이다.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+</head>
+<body>
+  <div id="app">
+    <!-- props로 값을 넣어줌 -->
+    <app-header v-bind:propsdata="num"></app-header>
+    <!-- pass를 deliverNum으로 정의 -->
+    <app-content v-on:pass="deliverNum"></app-content>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script>
+    var appHeader = {
+      template: '<div>header</div>',
+      props: ['propsdata']
+    }
+    var appContent = {
+      template: '<div>content<button v-on:click="passNum">pass</button></div>',
+      // 상위 컴포넌트로 통신할 때, 파라미터를 넘겨줌
+      methods: {
+        passNum: function() {
+          this.$emit('pass', 10);
+        }
+      }
+    }
+
+    new Vue({
+      el: '#app',
+      components: {
+        'app-header': appHeader,
+        'app-content': appContent
+      },
+      data: {
+        num: 0
+      },
+      methods: {
+        // value는 하위 컴포넌트에서 올라온 값
+        deliverNum: function(value) {
+          this.num = value;
+        }
+      }
+    })
+  </script>
+</body>
+</html>
+```
+
+## router
+* 뷰 라우터는 뷰 라이브러리를 이용하여 싱글 페이지 애플리케이션을 구현할 때 사용하는 라이브러리이다.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <div id="app">
+    <div>
+      <!--a태그와 같은 페이지 이동 태그-->
+      <router-link to="/login">Login</router-link>
+      <!-- <a href="/login">Login</a> -->
+      <router-link to="/main">Main</router-link>
+    </div>
+    <!-- router 컴포넌트가 뿌려질 영역-->
+    <router-view></router-view>
+  </div>
+    
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+  <script>
+    let LoginComponent = {
+      template: '<div>login</div>'
+    }
+     let MainComponent = {
+      template: '<div>Main</div>'
+    }
+  let routergg = new VueRouter({
+    // 페이지의 라우팅 정보가 배열로 담김
+    routes: [
+      {
+        // 페이지의 url 
+        path: '/login',
+        // 해당 url에서 표시될 컴포넌트
+        component: LoginComponent
+      },
+      {
+        path: '/main',
+        component: MainComponent
+      }
+    ]
+  });
+
+  new Vue({
+    el: '#app',
+    router: routergg
+  });
+  </script>
+</body>
+</html>
+
+```
+
+## axios
+* javascript의 ajax와 같은 비동기 통신을 위한 라이브러리이다.
+* 뷰에서 공식적으로 권장하는 오픈 소스이다.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Axios</title>
+</head>
+<body>
+  <div id="app">
+    <button v-on:click="getData">get user</button>
+    <div>
+      {{ users }}
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script>
+    new Vue({
+      el: '#app',
+      data: {
+        users: []
+      },
+      methods: {
+        getData: function() { 
+          var vm = this;
+          axios.get('https://jsonplaceholder.typicode.com/users/')
+            .then(function(response) { //성공
+              console.log(response.data);
+              vm.users = response.data; // vm 대신 this를 쓰면 axios를 바라보게됨
+            })
+            .catch(function(error) {
+              console.log(error);
+            });
+        }
+      }
+    })
+  </script>
+</body>
+</html>
+
+```
