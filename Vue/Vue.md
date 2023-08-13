@@ -412,5 +412,70 @@ Object.defineProperty(viewModel, 'str', {
   </script>
 </body>
 </html>
-
 ```
+
+## Vue Template
+* HTML, CSS등의 마크업 속성과 뷰 인스턴스에서 정의한 데이터 및 로직들을 연결하여 사용자가 브라우저에서 볼 수 있는 형태의 HTML로 변환해주는 속성이다.
+  * 라이브러리 내부적으로 가상 돔 기반의 render() 함수로 변환
+  * 변환된 render() 함수는 최종적으로 사용자 화면에 표시
+  * 변환 과정에서 뷰의 Reactivity가 화면에 더해짐
+  * JSX기반의 render()함수에 더 익숙한 리액트 개발자라면 템플릿 속성을 이용하지 않아도 됨
+### Vue Template 사용 방법
+* ES5
+```html
+<script>
+  new Vue({
+    template: '<p>Hello {{ message }}</p>'
+  });  
+</script>
+```
+* ES6
+```html
+<template>
+  <p>Hello {{message}}</p>  
+</template>
+```
+
+### 데이터 바인딩
+* 데이터 바인딩은 HTML 화면 요소를 뷰 인스턴스의 데이터와 연결하는 것이다. 
+
+#### {{message}}
+* 뷰뿐만 아니라 다른 언어나 프레임워크에서도 자주 사용되는 템플릿 문법이다.
+* data속성의 message값이 바뀌면 Reactivity에 의해 화면이 자동으로 갱신된다.
+* 뷰 데이터가 바뀌어도 갱신하고 싶지 않으면 v-once 속성을 사용하면 된다.
+
+#### v-bind
+* id, class, style 등의 HTML 속성값에 뷰 데이터 값을 연결할 때 사용한다.
+* 형식은 v-bind 속성으로 지정할 HTML 속성이나 props속성 앞에 접두사로 붙여준다.
+```html
+<div id="app">
+  <p v-bind:id="idA">아이디 바인딩</p>
+  <p v-bind:class="classA">클래스 바인딩</p>
+  <p v-bind:style="styleA">스타일 바인딩</p>
+</div>
+<script>
+  new Vue({
+    el: '#app',
+    data: {
+      idA: 10,
+      classA: 'container',
+      styleA: 'color: blue'
+    }
+  });
+</script>
+```
+* `v-vind:id`는 `:id`로 간소화 가능하지만 코드 가독성을 위해 간소화하지 않는것이 좋다.
+
+### 자바스크립트 표현식
+* 뷰 템플릿에서 자바스크립트 표현식을 사용할 수 있다.
+  * `{{ number + 1}}` 사칙연산
+  * `{{ ok ? 'YES' : 'NO'` 삼항 연산자
+  * `{{ message.split('').reverse().join('') }}` 자바스크립트 API
+  * `v-bind:id="'list-' + id"` 문자열 연산
+
+#### 자바스크립트 연산식 주의점
+* `{{ var a = 1 }}` 변수 선언 불가
+* `{{ if (ok) { return message } }}` 조건식 불가
+* `{{ message.split('').reverse().join('') }}`와 같은 복잡한 연산은 인스턴스에서 수행해야 함
+  * 스크립트에서 computed 속성으로 계산 후 최종값만 표현하는게 좋다.
+  * 화면단 코드는 UI구조 파악을 위한 것이기 때문에 연산 로직과 UI코드는 분리되는것이 좋다.
