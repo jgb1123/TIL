@@ -521,3 +521,115 @@ Object.defineProperty(viewModel, 'str', {
 * 이후 데이터의 변경에 따른 리렌더링을 하지 않는다.
 * 주로 정적 콘텐츠에 사용된다.
 
+### 이벤트 처리
+* v-on을 이용하여 이벤트 처리를 할 수 있다.
+
+#### 기본 예제
+```html
+<div id="app">
+  <button v-on:click="clickBtn">클릭</button>
+</div>
+```
+```html
+<script>
+  new Vue({
+    el: '#app',
+    methods: {
+      clickBtn: function(){
+        alert("기본 클릭 이벤트")
+      }
+    }
+  });
+</script>
+```
+
+#### 인자 전달 받기
+```html
+<div id="app">
+  <button v-on:click="clickBtn(10)">클릭</button>
+</div>
+<script>
+  new Vue({
+    el: '#app',
+    methods: {
+      clickBtn: function(num){
+        alert("인자 값 전달:"+num);
+      }
+    }
+  });
+</script>
+```
+
+#### 이벤트 인자 접근
+```html
+<div id="app">
+  <button v-on:click="clickBtn">클릭</button>
+</div>
+<script>
+  new Vue({
+    el: '#app',
+    methods: {
+      clickBtn: function(event){
+        console.log(event);
+      }
+    }
+  });
+</script>
+```
+
+#### 일반 인자, 이벤트인자 동시 접근
+```html
+<div id="app">
+  <button v-on:click="clickBtn($event, 10)">클릭</button>
+</div>
+<script>
+  new Vue({
+    el: '#app',
+    methods: {
+      clickBtn: function(event, num){
+        console.log("인자 값 전달:"+num);
+        console.log(event);
+      }
+    }
+  });
+</script>
+```
+
+### 고급 템블릿 기법
+#### computed 속성
+* 데이터를 가공하는 등의 복잡한 연산은 뷰 인스턴스 내에서 수행한다.
+* 최종적으로 HTML에는 데이터만 표현해야 한다.
+* computed 속성을 이용하면 HTML단의 코드가 훨씬 깔끔해진다.
+
+##### 장점
+* computed 속성에서 사용하고 있는 data값이 변경되면 전체 값을 다시 한번 계산한다.
+* 연산의 결과 값을 미리 저장하고 있다가 필요할 때 불러와 동일한 연산은 반복하지 않는다.(캐싱)
+
+##### computed 속성 vs methods 속성
+* methods 속성은 호출할 때만 로직이 수행된다. (수동)
+* computed 속성은 대상 데이터 값이 변경되면 자동으로 수행된다. (능동)
+
+##### computed 예제
+```html
+<div id="app">
+  <p>원본 메시지: "{{ message }}"</p>
+  <p>역순으로 표시한 메시지: "{{ reversedMessage }}"</p>
+</div>
+
+<script>
+  new Vue({
+    el: '#app',
+    data: {
+      message: 'hello'
+    },
+    computed:{
+      reversedMessage: function(){
+        return this.message.split('').reverse().join('');
+      }
+    }
+  });
+</script>
+```
+* 연산된 결과가 `reversedMessage`에 저장되고 HTML에서 `{{ reversedMessage }}`를 호출하면 저장된 값을 바로 불러온다.
+* 만약 HTML에서 `{{ reversedMessage }}`를 여러 곳에서 호출하면 연산을 하지 않고 저장된 값을 가져오기 때문에 성능면에서 효율적이다.
+* 복잡한 연산을 반복 수행해서 화면에 표시해야 한다면 computed 속성을 이용하는것이 좋다.
