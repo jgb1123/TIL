@@ -648,3 +648,21 @@ Object.defineProperty(viewModel, 'str', {
   * 비동기 작업을 처리하거나 데이터의 변화에 따른 추가 작업을 할 때 유용하다. 
   * 새로운 값과 이전 값을 이용할 수 있어 이전 값에 기반하여 로직을 수행할 수 있다.
 * 데이터 변화 감지라는 점에서 두 속성은 동일하지만 computed는 데이터 변환과 계산에 사용하고, watch는 주로 비동기 처리와 추가 로직 수행에 사용된다.
+
+
+## Vue CLI 설치 및 프로젝트 생성
+### Vue CLI
+* CLI기반 Vue 프로젝트 생성 도구이다.
+* Vue의 기본적인 폴더 구조, 라이브러리를 알아서 설정해준다.
+
+### Node.js 설치
+* Vue CLI를 설치하기 위해선 node.js 설치가 선행되어야 한다.
+
+### Vue CLI 설치
+* `npm install -g @vue/cli` Vue CLI 설치
+* 만약 Vue CLI의 특정 버전을 설치하고자 한다면 @버전을 뒤에 붙여주면 된다. `npm install -g @vue/cli@4.5.11`
+
+### 프로젝트 생성
+* `vue create 프로젝트명` 프로젝트 생성
+* `cd 프로젝트명` 
+* `npm run serve` 개발 서버가 실행되어 미리보기 웹페이지 확인 가능
