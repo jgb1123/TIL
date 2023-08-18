@@ -666,3 +666,34 @@ Object.defineProperty(viewModel, 'str', {
 * `vue create 프로젝트명` 프로젝트 생성
 * `cd 프로젝트명` 
 * `npm run serve` 개발 서버가 실행되어 미리보기 웹페이지 확인 가능
+
+## SpringBoot, Vue 연동
+* Spring Boot와 Vue를 서로 연동하지 않으면 Vue를 이용해 만든 클라이언트 쪽 페이지 구성을 바꿀 때마다 매번 build를 하고 build결과물을 resources/static으로 이동시켜줘야 해서 번거롭다.
+* 개발환경에서는 Spring Boot 서버도 키고, Vue 서버도 켜서 port두개를 두고 진행하겠지만, 배포 시엔 서버를 두개나 두기엔 번거로울 수 있다.
+* 따라서 배포 환경에서는 연동을 통해 Vue의 빌드 결과물의 목적지를 Spring Boot의 resources/static으로 맞추고 실 서버는 Spring Boot 서버 하나만 두게 하면 편리하다.
+
+### Proxy
+* 연동은 Proxy 서버라는 것을 활용한다.
+* Proxy서버는 서로 연결점이 없거나 보안상의 이유로 직접 통신할 수 없는 외부 네트워크들을 간접적으로 연결시키는 중개인 역할을 한다.
+* 사용자가 프론트엔드 서버로 접근해서 리소스를 요청하면 프록시는 이 요청을 백엔드로 연결시켜 요청을 전달한다.
+
+### 연동 방법
+* 우선 Spring Boot 서버의 포트와 Vue 서버의 포트가 겹치지 않도록 따로 잡는다.
+* vue 프로젝트 폴더에 vue.config.js 파일(Vue 설정 파일)을 생성해주고 다음과 같이 입력한다.
+```javascript
+module.exports = {
+  outputDir: "../src/main/resources/static", // 빌드 타겟 디렉토리
+  devServer: { // 개발 환경에서의 서버를 설정, 프록시로 데이터를 Vue서버에서 SpringBoot로 넘겨줌
+    proxy: {
+      '/api': { // /api 경로로 들어오면
+        target: 'http://localhost:8081', // 스프링부트 서버로 보냄(실제 배포시엔 적절히 수정)
+        changeOrigin: true // cross origin 허용
+      }
+    }
+  }
+}
+```
+* 이렇게 되면 만약 Vue가 8080포트라면 클라이언트는 Vue 화면인 8080포트로 접속하지만, /api라는 경로로 시작하게 되면 스프링부트 서버로 연결된다.
+
+
+
