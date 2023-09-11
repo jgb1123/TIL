@@ -40,8 +40,9 @@
 * [Spring 성능 개선](https://github.com/jgb1123/TIL/blob/main/Spring/%EC%84%B1%EB%8A%A5%EA%B0%9C%EC%84%A0.md)
 
 ## DataBase
-* [DataBase 기초](https://github.com/jgb1123/TIL/blob/main/Database/Database.md)
+* [DataBase 기초](https://github.com/jgb1123/TIL/blob/main/Database/DataBase.md)
 * [Redis](https://github.com/jgb1123/TIL/blob/main/Database/Redis.md)
+* [Oracle](https://github.com/jgb1123/TIL/blob/main/Database/Oracle.md)
 
 ## Network
 * [Network 기초](https://github.com/jgb1123/TIL/blob/main/Network/Network.md)
