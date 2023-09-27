@@ -13,15 +13,15 @@
 ## CleanCode
 * [Clean Code](https://github.com/jgb1123/TIL/blob/main/CleanCode/CleanCode.md)
 
-## AWS
-* [AWS](https://github.com/jgb1123/TIL/blob/main/AWS/AWS.md)
-* [Docker](https://github.com/jgb1123/TIL/blob/main/AWS/Docker.md)
-* [Deployment Automation](https://github.com/jgb1123/TIL/blob/main/AWS/DeploymentAutomation.md)
-* [EC2](https://github.com/jgb1123/TIL/blob/main/AWS/EC2.md)
-* [RDS](https://github.com/jgb1123/TIL/blob/main/AWS/RDS.md)
-* [배포](https://github.com/jgb1123/TIL/blob/main/AWS/%EB%B0%B0%ED%8F%AC.md)
-* [CI&CD](https://github.com/jgb1123/TIL/blob/main/AWS/CI%26CD.md)
-* [무중단배포](https://github.com/jgb1123/TIL/blob/main/AWS/%EB%AC%B4%EC%A4%91%EB%8B%A8%EB%B0%B0%ED%8F%AC.md)
+## DevOps
+* [AWS](https://github.com/jgb1123/TIL/blob/main/DevOps/AWS.md)
+* [Docker](https://github.com/jgb1123/TIL/blob/main/DevOps/Docker.md)
+* [Deployment Automation](https://github.com/jgb1123/TIL/blob/main/DevOps/DeploymentAutomation.md)
+* [EC2](https://github.com/jgb1123/TIL/blob/main/DevOps/EC2.md)
+* [RDS](https://github.com/jgb1123/TIL/blob/main/DevOps/RDS.md)
+* [배포](https://github.com/jgb1123/TIL/blob/main/DevOps/%EB%B0%B0%ED%8F%AC.md)
+* [CI&CD](https://github.com/jgb1123/TIL/blob/main/DevOps/CI%26CD.md)
+* [무중단배포](https://github.com/jgb1123/TIL/blob/main/DevOps/%EB%AC%B4%EC%A4%91%EB%8B%A8%EB%B0%B0%ED%8F%AC.md)
 
 ## Security
 * [JWT](https://github.com/jgb1123/TIL/blob/main/Security/JWT.md)
