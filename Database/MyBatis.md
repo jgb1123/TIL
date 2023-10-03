@@ -29,3 +29,167 @@
 ### Mapping File
 * SQL과 객체 매핑 설정을 하는 XML파일이다.
 
+## MyBatis 프로세스
+### 애플리케이션 실행 시
+* 애플리케이션이 SqlSessionFactoryBuilder를 사용하여 SqlSessionFactory를 빌드하도록 요청한다.
+* SqlSessionFactoryBuilder는 MyBatis 설정 파일을 읽어와 이를 기반으로 SqlSessionFactory를 생성한다.
+
+### 클라이언트 요청 시
+* 애플리케이션은 SqlSessionFactory에서 SqlSession을 생성한다.
+* SqlSession은 데이터베이스와의 연결을 관리하며, Mapper Interface를 통해 데이터베이스 작업을 수행한다.
+* 애플리케이션은 SqlSession을 사용하여 Mapper Interface의 구현 객체를 가져온다.
+* 애플리케이션은 Mapper Interface의 메서드를 호출한다.
+* Mapper Interface의 구현 객체는 SqlSession 메서드를 호출하고 SQL 실행을 요청한다.
+* SqlSession은 Mapping File에서 실행할 SQL을 찾아서 데이터베이스에 대해 실행한다.
+
+## 예제
+### build.gradle 의존성 추가
+```groovy
+dependencies {
+    ...
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:{Version}'
+    ...
+}
+```
+
+### DB 설정 (H2 기준)
+```properties
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=password
+```
+
+### MyBatis 설정
+* `src/main/resources/mybatis-config.xml` 파일 생성
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <!-- DB 연결 정보 설정 -->
+    <environments default="development">
+        <environment id="development">
+            <transactionManager type="JDBC" />
+            <dataSource type="POOLED">
+                <property name="driver" value="org.h2.Driver" />
+                <property name="url" value="jdbc:h2:mem:testdb" />
+                <property name="username" value="sa" />
+                <property name="password" value="password" />
+            </dataSource>
+        </environment>
+    </environments>
+
+    <!-- MyBatis 매퍼 파일 위치 설정 -->
+    <mappers>
+        <mapper resource="com/example/mapper/UserMapper.xml" />
+    </mappers>
+</configuration>
+
+```
+
+
+### Mapper 인터페이스 작성
+```java
+@Mapper
+public interface UserMapper {
+    List<User> getAllUsers();
+    User getUserById(Long id);
+    void insertUser(User user);
+    void updateUser(User user);
+    void deleteUser(Long id);
+}
+```
+
+### Mapper XML 파일 작성
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+    <select id="getAllUsers" resultType="com.example.model.User">
+        SELECT * FROM users
+    </select>
+
+    <select id="getUserById" resultType="com.example.model.User">
+        SELECT * FROM users WHERE id = #{id}
+    </select>
+
+    <insert id="insertUser" parameterType="com.example.model.User">
+        INSERT INTO users (name, email) VALUES (#{name}, #{email})
+    </insert>
+
+    <update id="updateUser" parameterType="com.example.model.User">
+        UPDATE users SET name = #{name}, email = #{email} WHERE id = #{id}
+    </update>
+
+    <delete id="deleteUser" parameterType="java.lang.Long">
+        DELETE FROM users WHERE id = #{id}
+    </delete>
+</mapper>
+```
+
+### Service, Controller 작성
+```java
+@Service
+public class UserService {
+    @Autowired
+    private UserMapper userMapper;
+
+    public List<User> getAllUsers() {
+        return userMapper.getAllUsers();
+    }
+
+    public User getUserById(Long id) {
+        return userMapper.getUserById(id);
+    }
+
+    public void insertUser(User user) {
+        userMapper.insertUser(user);
+    }
+
+    public void updateUser(User user) {
+        userMapper.updateUser(user);
+    }
+
+    public void deleteUser(Long id) {
+        userMapper.deleteUser(id);
+    }
+}
+```
+
+```java
+@RestController
+@RequestMapping("/users")
+@RequiredArgsConstructor
+public class UserController {
+    private final UserService userService;
+
+    @GetMapping
+    public List<User> getAllUsers() {
+        return userService.getAllUsers();
+    }
+
+    @GetMapping("/{userId}")
+    public User getUserById(@PathVariable Long userId) {
+        return userService.getUserById(userId);
+    }
+
+    @PostMapping
+    public void insertUser(@RequestBody User user) {
+        userService.insertUser(user);
+    }
+
+    @PutMapping("/{userId}")
+    public void updateUser(@PathVariable Long userId, @RequestBody User user) {
+        user.setId(userId);
+        userService.updateUser(user);
+    }
+
+    @DeleteMapping("/{userId}")
+    public void deleteUser(@PathVariable Long userId) {
+        userService.deleteUser(userId);
+    }
+}
+```
