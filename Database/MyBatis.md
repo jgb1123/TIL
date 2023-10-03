@@ -141,8 +141,8 @@ public class UserService {
         return userMapper.getAllUsers();
     }
 
-    public User getUserById(Long id) {
-        return userMapper.getUserById(id);
+    public User getUserById(Long userId) {
+        return userMapper.getUserById(userId);
     }
 
     public void insertUser(User user) {
@@ -153,8 +153,8 @@ public class UserService {
         userMapper.updateUser(user);
     }
 
-    public void deleteUser(Long id) {
-        userMapper.deleteUser(id);
+    public void deleteUser(Long userId) {
+        userMapper.deleteUser(userId);
     }
 }
 ```
