@@ -193,3 +193,37 @@ public class UserController {
     }
 }
 ```
+
+## 기본 문법
+### if
+```xml
+<if test="조건">
+    /* 조건이 참일 때 실행할 쿼리 */
+</if>
+```
+
+### choose, when, otherwise
+```xml
+<choose>
+    <when test="조건1">
+        /* 조건1이 참일 때 실행할 쿼리 */
+    </when>
+    <when test="조건2">
+        /* 조건1이 거짓이고 조건2가 참일 때 실행할 쿼리 */
+    </when>
+    <otherwise>
+        /* 그 외에 실행할 쿼리 */
+    </otherwise>
+</choose>
+```
+
+### foreach
+```xml
+<foreach collection="컬렉션 변수" item="항목" index="인덱스" open="시작문자열" close="종료문자열" separator="구분자">
+    #{item}
+</foreach>
+```
+
+### selectKey
+* insert된 이후에 알 수 있는 값이나 생성된 값을 바로 가져와서 쿼리를 보내야 하는 경우 사용한다.
+  * 주로 생성하고 난 후의 인덱스 번호를 가져와 작업해야 하는 상황에서 많이 사용된다.
