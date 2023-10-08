@@ -226,4 +226,38 @@ public class UserController {
 
 ### selectKey
 * insert된 이후에 알 수 있는 값이나 생성된 값을 바로 가져와서 쿼리를 보내야 하는 경우 사용한다.
-  * 주로 생성하고 난 후의 인덱스 번호를 가져와 작업해야 하는 상황에서 많이 사용된다.
+  * insert 이후의 키 값을 조회해야 할 때 (MySQL)
+  * insert 이전에 키 값을 조회해 직접 넣어줄 때 (Oracle)
+
+#### selectKey 속성
+* keyProperty : selectKey 구문의 결과가 세팅될 대상 프로퍼티명이다.
+* keyColumn : 리턴되는 결과셋의 컬럼명은 프로퍼티명과 일치한다. (여러개의 컬럼을 사용하면 콤마로 구분)
+* resultType : 결과의 타입이다.
+* order : BEFORE 또는 AFTER를 세팅할 수 있다.
+  * BEFORE : 키를 먼저 조회하고 그 값을 keyProperty에 세팅 후 insert문을 실행한다.
+  * AFTER : insert 구문을 실행 후 selectKey 구문을 실행한다.
+* statementType : Statement, PreparedStatement, CallableStatement이 있으며 디폴트 값은 Prepared이다.
+
+#### insert 이전 키 값 조회 (ORACLE)
+```xml
+<insert id="insertUser" parameterType="userDto" >
+	<selectKey order="BEFORE" keyProperty="no" resultType="int">
+		select users_seq.nextval from dual
+	</selectKey>
+  
+	insert into users(no,name,email,password)
+	values(#{no}#{name},#{email},#{password})
+</insert>
+```
+
+#### insert 이후 키 값 조회 (MySQL)
+```xml
+<insert id="insertUser" parameterType="userDto">
+	insert into USERS(user_id, name, email, password)
+    values (#{userId}, #{name}, #{email}, #{password});
+
+    <selectKey resultType="Long" keyProperty="userNo" keyColumn="user_no" order="AFTER">
+    	SELECT LAST_INSERT_ID()
+    </selectKey>
+</insert>
+```
