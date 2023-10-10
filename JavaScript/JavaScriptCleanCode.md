@@ -55,3 +55,71 @@ function printMessage(text) {
 ```
 * Logical OR operator는 undefined, null, 0, -0, '', false과 같은 falsy의 경우 적용
 * Nullish coalescing operator는 undefined, null인 경우에만 적용
+
+## Object Destructuring
+### 나쁜 코드
+```javascript
+function displayPerson(person) {
+  displayAvatar(person.name);
+  displayName(person.name);
+  displayProfile(person.name, person.age);
+}
+```
+```javascript
+function displayPerson(person) {
+  const name = person.name;
+  const age = person.age;
+  displayAvatar(name);
+  displayName(name);
+  displayProfile(name, age);
+}
+```
+
+### 좋은 코드
+```javascript
+function displayPerson(person) {
+  const { name, age } = person;
+  displayAvatar(name);
+  displayName(name);
+  displayProfile(name, age);
+}
+```
+
+## Spread Syntax
+```javascript
+const item = {type: 'A', size: 'M' };
+const detail = { price:20, mode: 'Korea', gender: 'M' };
+```
+### 나쁜 코드
+```javascript
+item['price'] = detail.price; 
+```
+```javascript
+const new Object = new Object();
+newObject['type'] = item.type;
+newObject['size'] = item.size;
+newObject['price'] = detail.price;
+newObject['made'] = detail.mode;
+newObject['gender'] = detail.gender;
+```
+```javascript
+const newObject = {
+  type: item.type,
+  size: item.size,
+  price: detail.price,
+  made: detail.made,
+  gender: detail.gender,
+};
+```
+
+### 덜 좋은 코드
+```javascript
+const shirt = Obect.assign(item, detail);
+```
+### 좋은 코드
+```javascript
+const shirt = { ...item, ...detail}; 
+```
+```javascript
+const shirt = { ...item, ...detail, price: 40};
+```
