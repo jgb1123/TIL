@@ -123,3 +123,71 @@ const shirt = { ...item, ...detail};
 ```javascript
 const shirt = { ...item, ...detail, price: 40};
 ```
+
+## Optional Chaining
+```javascript
+const bob = {
+  name : 'julia',
+  age: 20,
+};
+
+const anna = {
+  name : 'julia',
+  age: 20,
+  job : {
+    title : 'Software Engineer',
+  },
+};
+```
+### 나쁜 코드
+```javascript
+function displayJobTitle(person) {
+  if (person.job && person.job.title) {
+    console.log(person.job.title);
+  }
+}
+```
+### 좋은 코드
+```javascript
+function displayJobTitle(person) {
+  if (person.job?.title) {
+    console.log(person.job.title);
+  }
+}
+```
+```javascript
+function displayJobTitle(person) {
+    const title = person.job?.title ?? 'No Job Yet 🔥';
+    console.log(title);
+  }
+}
+```
+
+## Template Literals
+```javascript
+const person = {
+  name : 'julia',
+  score: 4,
+};
+```
+
+### 나쁜 코드
+```javascript
+console.log(
+  'Hello ' + person.name;
+);
+```
+### 좋은 코드
+```javascript
+console.log(`Hello ${person.name}`);
+```
+```javascript
+const { name, score } = person;
+console.log(`Hello ${name}, ${score}`);
+```
+```javascript
+function greetings(person) {
+  const { name, score } = person;
+  console.log(`Hello ${name}, ${score}`);
+}
+```
