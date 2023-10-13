@@ -218,7 +218,8 @@ function sumArray(items) {
   let sum = 0;
   for(let i = 0; i<items.length; i++) {
     sum += items[i];
-  } return sum;
+  } 
+  return sum;
 }
 const evens = getAllEvens(items);
 const multiple = multiplyByFour(evens);   const sum = sumArray(multiple);   console.log(sum);
@@ -237,4 +238,27 @@ const result = items
     .map((num) => num*4)
     .reduce((a,b) => a+b, 0);
 console.log(result);
+```
+
+## Async, Await
+### 나쁜 코드
+```javascript
+function displayUser() {
+  fetchUser()
+    .then((user) => {
+      fetchProfile(user)
+        .then((profile) => {
+          updateUI(user, profile)
+        });
+    });
+}
+```
+
+### 좋은 코드
+```javascript
+async function displayUser() {
+  const user = await fetchUser();
+  const profile = await fetchProfile(user);
+  updateUI(user, profile);
+}
 ```
