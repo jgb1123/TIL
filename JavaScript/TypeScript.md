@@ -32,7 +32,7 @@
 ### 학습시간
 * 새로운 언어이기 때문에 어느정도 러닝커브가 필요하다.
 
-## 기본 문법
+## 기본 타입 선언
 ### 문자열
 ```typescript
 let hello: string = "hello!"
@@ -62,4 +62,100 @@ let person2: { name: string; age:number } = {
 ### 불리언
 ```typescript
 let isThatTrue: boolean = true;
+```
+
+## 함수 선언
+### 함수 타입 선언
+```typescript
+function add(x: number, y: number): number {
+  return x + y;
+}
+```
+
+### 선택적 매개변수
+```typescript
+function buildName(firstName: string, lastName?: string) {
+  if (lastName) {
+    return firstName + " " + lastName;
+  } else {
+    return firstName;
+  }
+}
+
+let result1 = buildName("GB");
+let result2 = buildName("GB", "Jang");
+```
+
+## 인터페이스
+* 자주 사용하는 타입들을 object 형태의 묶음으로 정의해 새로운 타입을 만드는 기능이다.
+### interface 선언
+```typescript
+interface User {
+  age: number;
+  name: string;
+}
+```
+
+### 변수 활용
+```typescript
+const jgb: User = { name: "GBJang, age: 30 }
+```
+
+### 함수 인자로의 활용
+```typescript
+function checkUser(user: User) {
+  console.log(user);
+}
+
+checkUser({ name: "GBJang", age: 30 });
+```
+
+### 함수 구조 활용
+```typescript
+interface Add {
+  (x: number, y: number): number;
+}
+
+let addFunc: Add = (a, b) => a + b;
+
+console.log(addFunc(7, 10));
+```
+
+### 배열 활용
+```typescript
+interface StringArr {
+  [index: number]: string;
+}
+
+let arr: StringArr = ["a", "b", "c"];
+```
+
+### 객체 활용
+```typescript
+interface Obj {
+  [key: string]: string;
+}
+
+const obj: Obj {
+  person1: "GBJang",
+  person2: "HYKim"
+}
+```
+
+### interface 확장
+```typescript
+interface Person {
+  name: string;
+  age: number;
+}
+
+interface Developer extends Person {
+  position: string;
+}
+
+const jgb: Developer = {
+  name: "GBJang",
+  age: 30,
+  position: "BackEnd"
+};
 ```
