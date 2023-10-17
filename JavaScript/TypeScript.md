@@ -159,3 +159,55 @@ const jgb: Developer = {
   position: "BackEnd"
 };
 ```
+
+## 타입(type)
+* interface와는 다르게 새로운 타입을 생성하는 것이 아닌 별칭을 부여하는 것이다.
+* interface와 type의 가장 큰 차이점은 타입의 확장 가능 여부이다.
+* type은 extends 키워드는 사용할 수 없으며, 따라서 type 보다는 interface 사용이 권장된다.
+
+### 타입 별칭 선언
+```typescript
+type StrOrNum = string | number;
+
+const str1: StrOrNum = "hello";
+const str2: StrOrNum = 123;
+```
+
+## 연산자
+### Union Type (유니온 타입)
+* 한 개 이상의 type을 선언할 때 사용하며, `|`키워드를 사용한다.
+
+```typescript
+function strOrNum (value: string | number) {
+  if(typeof value === 'string') {
+    ...
+  } else if(typeof value === 'number') {
+    ...
+  } else {
+    ...
+  }
+}
+```
+
+### Intersection Type (교차 타입)
+* 함수 호출의 경우 함수 인자에 명시한 type을 모두 제공해야 한다.
+
+```typescript
+interface Person {
+  name: string;
+  age: number;
+}
+
+interface Skill {
+  name: string;
+  position: string;
+}
+
+type Developer = Person & Skill;
+
+let devPerson: Developer = {
+  name: "GBJang",
+  age: 30,
+  position: "BE"
+};
+```
