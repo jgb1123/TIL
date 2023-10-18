@@ -211,3 +211,55 @@ let devPerson: Developer = {
   position: "BE"
 };
 ```
+
+## Class
+### 접근 제한자
+* public, private, protected가 있다.
+
+| 접근 제한자    | public | protected | private |
+|-----------|--------|-----------|---------|
+| 클래스 내부    | O      | O         | O       |
+| 자식 클래스 내부 | O      | O         | X       |
+| 클래스 인스턴스  | O      | X         | X       |
+
+### Class에서 타입 선언
+```typescript
+class Person {
+  // constructor 위에 선언
+  private name: string;
+  public age: number;
+  readonly log: string;
+  
+  constructor(name: string, age: number) {
+    this.name = name;
+    this.age = age;
+  }
+}
+```
+
+## Enum
+* TypeScript는 상수들의 집합을 정의할 수 있다.
+* 숫자와 문자열 기반 열거형을 제공한다.
+
+### 숫자형 enum
+* 자동으로 0에서 1씩 증가하는 값을 부여한다
+
+```typescript
+enum Brands {
+  Nike,		    // 0
+  Adidas,		// 1
+  NewBalance	// 2
+}
+
+const myShoes = Brands.Nike;  //0
+```
+
+### 문자형 enum
+```typescript
+enum Player {
+  kim = '김',
+  park = '박'
+}
+
+const player = Player.park;	// 박
+```
