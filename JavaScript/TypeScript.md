@@ -263,3 +263,71 @@ enum Player {
 
 const player = Player.park;	// 박
 ```
+
+## 제네릭
+* Java의 제네릭과 비슷하다.
+* 다양한 타입에서 작동하는 컴포넌트를 작성할 수 있다.
+
+### 제네릭 선언
+* `<T>`와 같이 타입을 선언하며, 알파벳은 T를 많이 사용한다.
+
+```typescript 
+function logText<T>(text: T): T {
+  consol.log(text);
+  return text;
+}
+
+logText<string>('Hello!');
+```
+
+### interface에 제네릭 선언
+```typescript
+interface Product<T> {
+  menu: T;
+  price: number;
+}
+
+const noodle: Product<string> = { menu: 'noodle', price : 5000 };
+```
+
+### 제네릭 타입 제한
+#### 배열 힌트
+```typescript
+function textLength<T>(text: T[]): T[] {
+    console.log(text.length);
+    return text;
+}
+
+textLength<string>(['hello', 'world']);
+```
+
+#### 정의된 타입 이용
+```typescirpt
+interface LengthType {
+    length: number;
+}
+
+function logTextLenth<T extends LengthType>(text: T): T {
+    console.log(text.length);
+    return text;
+}
+
+logTextLenth('hello world'); // 11
+logTextLenth(100); // 에러
+logTextLenth({ length: 100 }); // 100
+```
+
+#### keyof
+```typescript
+interface Product {
+    menu: string;
+    price: number;
+    stock: number;
+}
+
+function getProductOption<T extends keyof Product>(productOption: T): T {
+    return productOption;
+}
+
+getProductOption('price'); // 'menu', 'price', 'stock'만 인자로 사용 가능
+```
