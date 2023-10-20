@@ -331,3 +331,68 @@ function getProductOption<T extends keyof Product>(productOption: T): T {
 
 getProductOption('price'); // 'menu', 'price', 'stock'만 인자로 사용 가능
 ```
+
+## 유틸리티
+### Partial<T>
+* T의 모든 프로퍼티를 선택적으로 만드는 타입을 구성한다.
+* 주어진 타입의 모든 하위 타입 집합을 나타내는 타입을 반환한다.
+
+```typescript
+interface Todo {
+    title: string;
+    description: string;
+}
+
+function updateTodo(todo: Todo, fieldsToUpdate: Partial<Todo>) {
+    return { ...todo, ...fieldsToUpdate };
+}
+
+const todo1 = {
+    title: 'organize desk',
+    description: 'clear clutter',
+};
+
+const todo2 = updateTodo(todo1, {
+    description: 'throw out trash',
+});
+```
+
+### Readonly<T>
+* T의 모든 프로퍼티를 읽기 전용으로 설정한 타입을 구성한다.
+* 생성된 타입의 프로퍼티는 재할당할 수 없다.
+
+```typescript
+interface Todo {
+    title: string;
+}
+
+const todo: Readonly<Todo> = {
+    title: 'Delete inactive users',
+};
+
+todo.title = 'Hello'; // 에러
+```
+
+* 런타임에 실패할 할당 표현식을 나타낼 때 유용한다.
+
+```typescript
+function freeze<T>(obj: T): Readonly<T>;
+```
+
+### Record<K, T>
+* 타입 T의 프로퍼티의 집합 K로 타입을 구성한다.
+* 타입의 프로퍼티들을 다른 타입에 매핑시키는 데 사용할 수 있다.
+
+```typescript
+interface PageInfo {
+    title: string;
+}
+
+type Page = 'home' | 'about' | 'contact';
+
+const x: Record<Page, PageInfo> = {
+    about: { title: 'about' },
+    contact: { title: 'contact' },
+    home: { title: 'home' },
+};
+```
