@@ -396,3 +396,56 @@ const x: Record<Page, PageInfo> = {
     home: { title: 'home' },
 };
 ```
+
+### Pick<T,K>
+* T에서 프로퍼티 K의 집합을 선택해 타입을 구성한다.
+
+```typescript
+interface Todo {
+    title: string;
+    description: string;
+    completed: boolean;
+}
+
+type TodoPreview = Pick<Todo, 'title' | 'completed'>;
+
+const todo: TodoPreview = {
+    title: 'Clean room',
+    completed: false,
+};
+```
+
+### Omit<T,K>
+* T에서 모든 프로퍼티를 선택한 다음 K를 제거한 타입을 구성한다.
+
+```typescirpt
+interface Todo {
+    title: string;
+    description: string;
+    completed: boolean;
+}
+
+type TodoPreview = Omit<Todo, 'description'>;
+
+const todo: TodoPreview = {
+    title: 'Clean room',
+    completed: false,
+};
+```
+
+### Exclude<T,U>
+* T에서 U에 할당할 수 있는 모든 속성을 제외한 타입을 구성한다.
+
+```typescript
+type T0 = Exclude<"a" | "b" | "c", "a">;  // "b" | "c"
+type T1 = Exclude<"a" | "b" | "c", "a" | "b">;  // "c"
+type T2 = Exclude<string | number | (() => void), Function>;  // string | number
+```
+
+### Extract<T,U>
+* T에서 U에 할당할 수 있는 모든 속성을 추출하여 타입을 구성한다.
+
+```typescript
+type T0 = Extract<"a" | "b" | "c", "a" | "f">;  // "a"
+type T1 = Extract<string | number | (() => void), Function>;  // () => void
+```
