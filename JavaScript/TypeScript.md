@@ -482,3 +482,49 @@ type T0 = ConstructorParameters<ErrorConstructor>;  // [(string | undefined)?]
 type T1 = ConstructorParameters<FunctionConstructor>;  // string[]
 type T2 = ConstructorParameters<RegExpConstructor>;  // [string, (string | undefined)?]
 ```
+
+### ReturnType<T>
+* 함수 T의 반환 타입으로 구성된 타입을 만든다.
+
+```typescript
+declare function f1(): { a: number, b: string }
+type T0 = ReturnType<() => string>;  // string
+type T1 = ReturnType<(s: string) => void>;  // void
+type T2 = ReturnType<(<T>() => T)>;  // {}
+type T3 = ReturnType<(<T extends U, U extends number[]>() => T)>;  // number[]
+type T4 = ReturnType<typeof f1>;  // { a: number, b: string }
+type T5 = ReturnType<any>;  // any
+type T6 = ReturnType<never>;  // any
+type T7 = ReturnType<string>;  // 오류
+type T8 = ReturnType<Function>;  // 오류
+```
+
+### InstanceType<T>
+* 생성자 함수 타입 T의 인스턴스 타입으로 구성된 타입을 만든다.
+
+```typescript
+class C {
+    x = 0;
+    y = 0;
+}
+
+type T0 = InstanceType<typeof C>;  // C
+type T1 = InstanceType<any>;  // any
+type T2 = InstanceType<never>;  // any
+type T3 = InstanceType<string>;  // 오류
+type T4 = InstanceType<Function>;  // 오류
+```
+
+### Required<T>
+* T의 모든 프로퍼티가 필수로 설정된 타입을 구성한다.
+
+```typescript
+interface Props {
+    a?: number;
+    b?: string;
+};
+
+const obj: Props = { a: 5 }; // 성공
+
+const obj2: Required<Props> = { a: 5 }; // 오류: 프로퍼티 'b'가 없습니다
+```
