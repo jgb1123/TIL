@@ -528,3 +528,63 @@ const obj: Props = { a: 5 }; // 성공
 
 const obj2: Required<Props> = { a: 5 }; // 오류: 프로퍼티 'b'가 없습니다
 ```
+
+### ThisParameterType
+* 함수 타입의 this 매개변수의 타입 혹은 함수 타입에 this 매개변수가 ㅇ벗을 경우 unknown을 추출한다.
+* --strictFunctionTypes가 활성화 되었을 때만 올바르게 동작한다. [strictFunctionTypes?](https://typescript-kr.github.io/pages/compiler-options.html)
+
+```typescript
+function toHex(this: Number) {
+  return this.toString(16);
+}
+
+function numberToString(n: ThisParameterType<typeof toHex>) {
+  return toHex.apply(n);
+}
+```
+
+### OmitThisParameter
+* 함수 타입에서 this 매개변수를 제거한다.
+* --strictFunctionTypes가 활성화 되었을 때만 올바르게 동작한다.
+
+```typescript
+function toHex(this: Number) {
+  return this.toString(16);
+}
+
+const fiveToHex: OmitThisParameter<typeof toHex> = toHex.bind(5); // bind는 이미 반환타입으로 OmitThisParameter 사용 중, 예제를 위함
+
+console.log(fiveToHex());
+```
+
+### ThisType<T>
+* 변형된 타입을 반환하지 않는다.
+* 문맥적 this타입에 표시하는 역할을 한다.
+* 이 유틸리티를 사용하기 위해선 --noImplicitThis 플래그를 사용해야 한다.[noImplicitThis?](https://typescript-kr.github.io/pages/compiler-options.html)
+
+```typescript
+type ObjectDescriptor<D, M> = {
+  data?: D;
+  method?: M & ThisType<D & M>; // 메서드 안 this의 타입은 D & M
+}
+
+function makeObject<D, M>(desc: ObjectDescriptor<D, M>): D & M {
+  let data: object = desc.data || {};
+  let methods: object = desc.method || {};
+  return { ... data, ...methods } as D & M;
+}
+
+let obj = makeObject({
+  data: { x: 0, y: 0},
+  methods: {
+    moveBy(dx: number, dy: number) {
+      this.x += dx; // 강력하게 타입이 정해진 this
+      this.y += dy; // 강력하게 타입이 정해진 this
+    }
+  }
+})
+
+obj.x = 10;
+obj.y = 20;
+obj.moveBy(5, 5);
+```
