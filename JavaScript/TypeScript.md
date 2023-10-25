@@ -48,14 +48,14 @@ let num: number = 123;
 let arr1: number[] = [10, 20, 30];
 let arr2: Array<number> = [10, 20, 30];
 let arr3: Array<string> = ["hello", "world"];
-let arr4: [string, number] = ["hello", "123];
+let arr4: [string, number] = ["hello", "123"];
 ```
 
 ### 객체
 ```typescript
 let person1: object = { name: "JGB", age: 30};
 let person2: { name: string; age:number } = {
-  name: "JGB"
+  name: "JGB",
   age: 30
 };
 ```
@@ -63,6 +63,59 @@ let person2: { name: string; age:number } = {
 ```typescript
 let isThatTrue: boolean = true;
 ```
+
+### 튜플
+* 요소의 타입과 개수가 고정된 배열을 표현할 수 있다.
+* 요소들의 타입이 모두 같을 필요는 없다.
+
+```typescript
+// 튜플 타입으로 선언
+let x: [string, number];
+// 초기화
+x = ["hello", 10]; // 성공
+// 잘못된 초기화
+x = [10, "hello"]; // 오류
+```
+
+```typescript
+console.log(x[0].substring(1)); // 성공
+console.log(x[1].substring(1)); // 오류, 'number'에는 'substring' 이 없음
+```
+
+```typescript
+x[3] = "world"; // 오류, '[string, number]' 타입에는 프로퍼티 '3'이 없음
+
+console.log(x[5].toString()); // 오류, '[string, number]' 타입에는 프로퍼티 '5'가 없음
+```
+
+### Any
+* 애플리케이션을 만들 때 알지 못하는 타입을 표현해야 할 수도 있다.
+* 이 값들은 사용자로부터 받은 데이터나 파티 라이브러리같은 동적인 컨텐츠에서 올 수 있다.
+* 이 경우 타입 검사를 하지 않고, 그 값들이 컴파일 시간에 검사를 통과하길 원할 수 있다.
+
+```typescript
+let notSure: any = 4;
+notSure = "hello"; // 성공
+notSure = false; // 성공
+```
+
+* nay타입은 타입의 일부만 알고 전체는 알지 못할 때 유용한다.
+  * 예시로, 여러 다른 타입이 섞인 배열을 다룰 수 있다.
+  ```typescript
+  let list: any[] = [1, true, "free"];
+  list[1] = 100;
+  ```
+
+### Void
+* 어떤 타입도 존재할 수 없음을 나타내기 때문에 any와 반대 타입과 같다.
+* void는 보통 함수에서 반환값이 없을 때 반환 타입을 표현하기 위해 많이 쓴다.
+```typescript
+function warnUser(): void {
+    console.log("This is my warning message");
+}
+```
+* void로 타입 변수를 선언하는것은 유용하지 않다.
+  * 그 변수에는 null(--strictNullChecks를 사용하지 않을 때만 해당)또는 undefined만 할당할 수 있다.
 
 ## 함수 선언
 ### 함수 타입 선언
