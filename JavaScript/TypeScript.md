@@ -117,6 +117,58 @@ function warnUser(): void {
 * void로 타입 변수를 선언하는것은 유용하지 않다.
   * 그 변수에는 null(--strictNullChecks를 사용하지 않을 때만 해당)또는 undefined만 할당할 수 있다.
 
+### Never
+* 절대 발생할 수 없는 타입을 나타낸다.
+* 함수 표현식이나 화살표 함수 표현식에서 항상 오류를 발생시키거나 절대 반환하지 않는 반환 타입으로 사용된다.
+* never 타입은 모든 타입의 하위 타입이다. (never 타입을 다른 타입에 할당할 수 있음)
+* 하지만 never타입은 다른 타입에 할당할 수 없다. (any타입 조차 never타입에 할당할 수 없음)
+
+```typescript
+// never를 반환하는 함수는 함수의 마지막에 도달할 수 없음
+function error(message: string): never {
+    throw new Error(message);
+}
+
+function infiniteLoop(): never {
+  while (true) {
+  }
+}
+```
+
+### Ojbect
+* object는 원시타입이 아닌 타입을 나타낸다. (number, string, boolean, bigint, symbol, null, undefined가 아닌 나머지)
+  * 예를 들어 함수, 배열, 사용자 지정 객체, 내장 객체 등을 모두 포함한다.
+* declare와 함께 아래 예제와 같이 JavaScript 환경에서 사용되는 외부 함수나 라이브러리와 함께 TypeScript를 사용할 수 있다.
+```typescript
+declare function create(o: object | null): void;
+```
+
+### 타입 단언(Type assertions)
+* TypeScript보다 개발자가 값에 대해 더 잘 알고 있을때가 있다.
+  * 보통 어떤 엔티티의 실제 타입이 현재 타입보다 더 구체적일 때 발생한다.
+* 타입단언은 개발자가 컴파일러에게 본인이 타입을 알고있으니 해당 타입으로 다루라고 선언하는 방법이다.
+
+```typescript
+// as키워드
+let someValue: any = "this is a string";
+let strLength: number = (someValue as string).length;
+```
+
+```typescript
+// <>이용
+let someValue: any = "this is a string";
+let strLength: number = (<string>someValue).length;
+```
+
+
+* 타입 단언은 아래와같은 상황에 많이 사용된다.
+  * 외부 라이브러리를 사용할 때, 라이브러리가 TypeScript와 함께 사용하기에 충분한 타입 정보를 제공하지 않는 경우
+  * TypeScript의 타입 추론이 개발자의 의도와 일치하지 않는 경우
+  * TypeScript가 특정 연산 또는 패턴을 올바르게 타입검사하지 못하는 경우
+* 하지만 타입 단언을 남용하면 타입 안정성에 문제가 발생할 수 있으므로 가능한 TypeScript의 타입을 이용하는 것이 좋다.
+
+
+
 ## 함수 선언
 ### 함수 타입 선언
 ```typescript
