@@ -693,3 +693,49 @@ obj.x = 10;
 obj.y = 20;
 obj.moveBy(5, 5);
 ```
+
+## Iterables
+* 객체가 Symbol.iterator 프로퍼티에 대한 구현을 갖고 있으면 이터러블로 간주한다.
+* Array, Map, Set, String, Int32Array, Uint32Array 등과 같은 일부 내장 타입에는 이미 Symbol.iterator 프로퍼티가 구현되어있다.
+
+### for..of 문
+* for..of는 객체의 Symbol.iterator 프로퍼티를 호출하여 이터러블 객체를 반복한다.
+
+```typescript
+let someArray = [1, "string", false];
+
+for (let entry of someArray)
+  console.log(entry); // 1, "string", false
+}
+```
+
+#### for..of vs for..in
+* for..in 은 반복되는 객체의 키 목록을 반환하며, for..of는 반복되는 객체의 숫자 프로퍼티 값 목록을 반환한다.
+
+```typescript
+let list = [4, 5, 6];
+
+for (let i in list){
+  console.log(i); // "0", "1", "2"
+}
+
+for (let i of list){
+  console.log(i); // "4", "5", "6"
+} 
+```
+
+* for..in은 모든 객체에서 작동한다. 객체의 프로퍼티를 검사하는 방법으로 사용된다.
+* for..of는 이터러블 객체의 값에 주로 관심이 있다.
+
+```typescript
+let pets = new Set(["Cat", "Dog", "Hamster"]);
+pets["species"] = "mammals";
+
+for (let pet in pets){
+  console.log(pet); // "species"
+}
+
+for (let pet of pets){
+  console.log(pet); // "Cat", "Dog", "Hamster"
+}
+```
