@@ -279,23 +279,9 @@ const str2: StrOrNum = 123;
 ```
 
 ## 연산자
-### Union Type (유니온 타입)
-* 한 개 이상의 type을 선언할 때 사용하며, `|`키워드를 사용한다.
-
-```typescript
-function strOrNum (value: string | number) {
-  if(typeof value === 'string') {
-    ...
-  } else if(typeof value === 'number') {
-    ...
-  } else {
-    ...
-  }
-}
-```
-
 ### Intersection Type (교차 타입)
-* 함수 호출의 경우 함수 인자에 명시한 type을 모두 제공해야 한다.
+* 두 개 이상의 타입을 결합하여 새로운 타입을 만드는 방법이다.
+* 교차 타입은 주로 인터페이스(interface)나 객체(object) 타입을 결합하는 데 사용되며, 이를 통해 여러 타입의 특성을 하나로 합칠 수 있다.
 
 ```typescript
 interface Person {
@@ -316,6 +302,24 @@ let devPerson: Developer = {
   position: "BE"
 };
 ```
+
+### Union Type (유니온 타입)
+* 교차 타입과는 다르게 여러 타입 중 하나를 나타내는 타입을 선언할 때 사용된다.
+* `|` 키워드를 사용하여 여러 타입을 하나로 결합한다.
+* 함수의 매개변수, 변수, 또는 객체의 속성 등을 여러 타입 중 하나로 지정할 때 유용하다.
+
+```typescript
+function strOrNum (value: string | number) {
+  if(typeof value === 'string') {
+    // 문자열 처리
+  } else if(typeof value === 'number') {
+    // 숫자 처리
+  } else {
+    // 다른 타입 처리
+  }
+}
+```
+
 
 ## Class
 ### 접근 제한자
