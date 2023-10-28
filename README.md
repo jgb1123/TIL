@@ -4,6 +4,8 @@
 
 ## JavaScript
 * [JavaScript 기초](https://github.com/jgb1123/TIL/blob/main/JavaScript/JavaScript%EA%B8%B0%EC%B4%88.md)
+* [JAvaScript CleanCode](https://github.com/jgb1123/TIL/blob/main/JavaScript/JavaScriptCleanCode.md)
+* [TypeScript](https://github.com/jgb1123/TIL/blob/main/JavaScript/TypeScript.md)
 
 ## Test
 * [JUnit](https://github.com/jgb1123/TIL/blob/main/Test/JUnit.md)
