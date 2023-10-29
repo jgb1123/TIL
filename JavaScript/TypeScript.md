@@ -278,49 +278,6 @@ const str1: StrOrNum = "hello";
 const str2: StrOrNum = 123;
 ```
 
-## 연산자
-### Intersection Type (교차 타입)
-* 두 개 이상의 타입을 결합하여 새로운 타입을 만드는 방법이다.
-* 교차 타입은 주로 인터페이스(interface)나 객체(object) 타입을 결합하는 데 사용되며, 이를 통해 여러 타입의 특성을 하나로 합칠 수 있다.
-
-```typescript
-interface Person {
-  name: string;
-  age: number;
-}
-
-interface Skill {
-  name: string;
-  position: string;
-}
-
-type Developer = Person & Skill;
-
-let devPerson: Developer = {
-  name: "GBJang",
-  age: 30,
-  position: "BE"
-};
-```
-
-### Union Type (유니온 타입)
-* 교차 타입과는 다르게 여러 타입 중 하나를 나타내는 타입을 선언할 때 사용된다.
-* `|` 키워드를 사용하여 여러 타입을 하나로 결합한다.
-* 함수의 매개변수, 변수, 또는 객체의 속성 등을 여러 타입 중 하나로 지정할 때 유용하다.
-
-```typescript
-function strOrNum (value: string | number) {
-  if(typeof value === 'string') {
-    // 문자열 처리
-  } else if(typeof value === 'number') {
-    // 숫자 처리
-  } else {
-    // 다른 타입 처리
-  }
-}
-```
-
-
 ## Class
 ### 접근 제한자
 * public, private, protected가 있다.
@@ -439,6 +396,111 @@ function getProductOption<T extends keyof Product>(productOption: T): T {
 }
 
 getProductOption('price'); // 'menu', 'price', 'stock'만 인자로 사용 가능
+```
+
+## 고급 타입
+
+### Intersection Type (교차 타입)
+* 두 개 이상의 타입을 결합하여 새로운 타입을 만드는 방법이다.
+* 교차 타입은 주로 인터페이스(interface)나 객체(object) 타입을 결합하는 데 사용되며, 이를 통해 여러 타입의 특성을 하나로 합칠 수 있다.
+
+```typescript
+interface Person {
+  name: string;
+  age: number;
+}
+
+interface Skill {
+  name: string;
+  position: string;
+}
+
+type Developer = Person & Skill;
+
+let devPerson: Developer = {
+  name: "GBJang",
+  age: 30,
+  position: "BE"
+};
+```
+
+### Union Type (유니온 타입)
+* 교차 타입과는 다르게 여러 타입 중 하나를 나타내는 타입을 선언할 때 사용된다.
+* `|` 키워드를 사용하여 여러 타입을 하나로 결합한다.
+* 함수의 매개변수, 변수, 또는 객체의 속성 등을 여러 타입 중 하나로 지정할 때 유용하다.
+
+```typescript
+function strOrNum (value: string | number) {
+  if(typeof value === 'string') {
+    // 문자열 처리
+  } else if(typeof value === 'number') {
+    // 숫자 처리
+  } else {
+    // 다른 타입 처리
+  }
+}
+```
+
+### 타입가드 (Type Guards)
+* TypeScript에서 유니온 타입을 다룰 때 사용되는 기술로, 런타임에서 값의 타입을 검사하여 해당 값을 특정 타입으로 좁히는 방법을 제공한다.
+* 이를 통해 코드에서 타입 안정성을 확보하고 유니온타입 내의 값들을 다룰 때 오류를 방지할 수 있다.
+1. 타입 확인 : 값의 타입을 typeof, instanceof, in 연산자등을 사용하여 런타임에서 확인한다.
+2. 타입 추론 : TypeScript는 해당 타입 확인을 통해 값의 타입을 좁힌다.
+3. 안정성 확보 : 이러한 타입 가드를 사용하면 코드에서 예상치 못한 오류를 방지하고 안전한 작업을 수행할 수 있다. 
+#### typeof 타입가드
+```typescript
+function printLength(value: string | number): void {
+  if (typeof value === 'string') {
+    console.log(value.length); // value는 문자열 타입으로 확인됨
+  } else {
+    console.log(value.toFixed(2)); // value는 숫자 타입으로 확인됨
+  }
+}
+
+printLength("Hello"); // 출력: 5
+printLength(3.1415); // 출력: 3.14
+```
+
+#### instanceof 타입가드
+```typescript
+class Animal {
+  speak() {
+    console.log("Animal speaks");
+  }
+}
+
+class Dog extends Animal {
+  speak() {
+    console.log("Dog barks");
+  }
+}
+
+function talk(animal: Animal): void {
+  if (animal instanceof Dog) {
+    animal.speak(); // Dog 클래스로 확인됨
+  } else {
+    animal.speak(); // Animal 클래스로 확인됨
+  }
+}
+
+talk(new Dog()); // 출력: "Dog barks"
+talk(new Animal()); // 출력: "Animal speaks"
+```
+
+#### in 타입가드
+```typescript
+type Bird = { fly: () => void };
+type Fish = { swim: () => void };
+
+function move(animal: Bird | Fish) {
+  if ("fly" in animal) {
+    // animal은 Bird 타입으로 좁혀짐
+    animal.fly();
+  } else {
+    // animal은 Fish 타입으로 좁혀짐
+    animal.swim();
+  }
+}
 ```
 
 ## 유틸리티
