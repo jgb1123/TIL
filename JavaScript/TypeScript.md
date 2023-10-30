@@ -503,6 +503,51 @@ function move(animal: Bird | Fish) {
 }
 ```
 
+### 널러블 타입 (Nullable types)
+* TypeScript에서 변수나 프로퍼티가 값을 가질 수 있는데, 그 값으로 null 또는 undefined를 허용하는 타입을 가르킨다.
+* 타입 안정성을 유지하면서 값이 없을 수 있는 상황을 다루기 위한 방법이다.
+* 변수 또는 프로퍼티 이름 뒤에 `| null` 또는 `| undefined`를 추가하여 사용한다.
+
+```typescript
+let nullableNumber: number | null;
+let nullableString: string | undefined;
+```
+
+* 널러블 타입은 TypeScript에서 값의 존재 여부를 더 명확하게 다루는데 도움되며, 코드의 안정성을 향상시킨다.
+
+### 타입 별칭(Type Aliases)
+* 기존의 타입을 새로운 이름으로 정의하고 사용할 수 있게 해주는 기능이다.
+* 때때로 인터페이스와 유사하지만 원시 값, 유니온, 튜플, 직접 작성해야 하는 다른 타입의 이름을 지을 수 있다.
+
+```typescript
+type Name = string;
+type NameResolver = () => string;
+type NameOrResolver = Name | NameResolver;
+function getName(n: NameOrResolver): Name {
+  if (typeof n === "string") {
+    return n;
+  } else {
+    return n();
+  }
+}
+```
+ 
+* 별칭은 실제로 새로운 타입을 만드는 것은 아니고, 그 타입을 나타내는 새로운 이름을 만드는 것이다.
+* 인터페이스와 같이 타입 별칭은 제네릭이 될 수 있다.
+```typescript
+type Container<T> = { value: T }; 
+```
+* 프로퍼티 안에서 자기 자신을 참조하는 타입 별칭을 가질 수 있다.
+```typescript
+type Tree<T> = {
+  value: T;
+  left: Tree<T>;
+  right: Tree<T>;
+}
+```
+
+
+
 ## 유틸리티
 ### Partial<T>
 * T의 모든 프로퍼티를 선택적으로 만드는 타입을 구성한다.
