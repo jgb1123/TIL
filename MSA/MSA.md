@@ -303,3 +303,9 @@
 ##### Half-Open
 * 일정 시간동안 Circuit Breaker가 Open 상태에서 일정 수의 요청을 허용한 후 서비스의 상태를 다시 확인한다.
 * 서비스가 회복되면 Circuit Breaker는 Closed상태로 전환하지만, 여전히 문제가 지속되면 Circuit Breaker는 다시 Open상태로 전환된다.
+
+#### Resilience4J
+* Resilience4J는 함수형 프로그래밍으로 설계된 겅량 Circuit Breaker 라이브러리로, Circuit Breaker 패턴을 위해 사용한다.
+* Resilience4J를 적용하면 외부 서비스나 다른 한 서비스에서 장애가 발생하여도 시스템은 계속 동작할 수 있도록 할 수 있다.
+* Spring Cloud에서는 원래 Circuit Breaker로 Netflix Hystrix를 많이 사용하였으나, Hystrix의 경우 EoS가 되어 Resilience4J 사용을 권고하고 있다.
+  * Resilience4J의 경우 추후 자세히 공부할 예정
