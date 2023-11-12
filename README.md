@@ -1,6 +1,11 @@
 # TIL(Today I Learned)
+## MSA
+* [MSA](https://github.com/jgb1123/TIL/blob/main/MSA/MSA.md)
+* [Kubernetes](https://github.com/jgb1123/TIL/blob/main/MSA/Kubernetes.md)
+
 ## Vue.js
 * [Vue.js](https://github.com/jgb1123/TIL/blob/main/Vue/Vue.md)
+* [Nuxt](https://github.com/jgb1123/TIL/blob/main/Vue/Nuxt.md)
 
 ## JavaScript
 * [JavaScript 기초](https://github.com/jgb1123/TIL/blob/main/JavaScript/JavaScript%EA%B8%B0%EC%B4%88.md)
