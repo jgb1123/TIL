@@ -1,7 +1,7 @@
 # TIL(Today I Learned)
 ## MSA
 * [MSA](https://github.com/jgb1123/TIL/blob/main/MSA/MSA.md)
-* [Kubernetes](https://github.com/jgb1123/TIL/blob/main/MSA/Kubernetes.md)
+* [Kubernetes](https://github.com/jgb1123/TIL/blob/main/MSA/Kubernetes%EA%B8%B0%EC%B4%88.md)
 
 ## Vue.js
 * [Vue.js](https://github.com/jgb1123/TIL/blob/main/Vue/Vue.md)
