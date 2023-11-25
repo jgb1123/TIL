@@ -65,12 +65,32 @@
 * Ingress는 서비스간 Routing을 위해 API Gateway를 사용하는데, L7에서 URL기반 라우팅 기능을 수행한다.
     * 쿠버네티스 HTTP/HTTPS 기반의 L7 로드밸런싱 기능을 제공하는 컴포넌트이다.
 * Service 앞에서 L7 로드밸런서 역할을 하고, URL에 따라 라우팅한다.
+* Igress 리소스를 실제로 처리하고 구현하는 컴포넌트로 NGINX Ingress Controller, Traefik, HAProxy 등이 있다.
 
 > L7 로드밸런싱
 > 
 > * L7 로드밸런싱은 애플리케이션 계층에서 이루어진다.
 > * HTTP와 같은 애플리케이션 계층 프로토콜을 기반으로 한다.
 > * Ingress는 특정 도메인이나 경로에 따라 서로 다른 서비스로 트래픽을 보낸다.
+
+### TLS/SSL 인증서 관리
+* Ingress를 통해 제공되는 HTTPS 트래픽을 암호화하기 위한 TLS/SSL 인증서를 관리한다.
+
+### Path 기반 라우팅
+* Ingress를 사용하여 특정 URL경로에 따라 서로 다른 서비스로 트래픽을 라우팅할 수 있다.
+
+### Virtual Hosts
+* 여러 도메인을 지원하고 각 도메인에 대해 다른 서비스로 트래픽을 라우팅할 수 있다.
+
+### Backend 서비스 구성
+* Ingress 리소스를 통해 라우팅되는 서비스는 Kubernetes 내의 Service로 설정되며 ClusterIP, NodePort 등이 사용된다.
+
+### Rewrite Rules
+* Ingress를 사용하여 URL경로를 재작성하거나 변경할 수 있는 rewirte 규칙을 제공한다.
+
+### Custom Annotations
+* Ingress 리소스에 사용자 지정 애너테이션을 추가하여 특별한 동작을 지시할 수 있다.
+
 
 ## ConfigMap, Secrets
 * 컨테이너에 들어갈 애플리케이션의 설정 값을 외부에서 제어할 수 있도록 도와주는 오브젝트이다.
