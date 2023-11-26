@@ -48,17 +48,51 @@
 ## Service
 * Cluster IP를 통해 유동적으로 생성되고 사라지는 Pod에 접근하기 위한 방법으로 사용된다.
 * Service는 주로 L4 로드밸런싱을 수행하며, 여러 Pod를 묶어 적절한 Pod로 트래픽을 라우팅하는 로드 밸런싱 기능을 제공한다.
-* 클러스터의 Service CIDR중에 지정된 IP로 생성 가능하다.
 * ClusterIP / NodePort / LoadBalancer 타입으로 제공되는데, 기본 옵션은 클러스터 내부에서만 사용할 수 있는 Cluster IP이다.
     * LoadBalancer : 외부에 노출되어 외부의 트래픽을 적절한 Pod로 트래픽을 라우팅
     * NodePort : 포트포워딩 방식
     * ClusterIP : Cluster 내부에서 트래픽을 라우팅
-
+    * ExternalName : 서비스에 select 대신 DNS name을 직접 명시하고자 할 때 사용
 > L4 로드밸런싱
 > 
 > * L4 로드밸런싱은 주로 전송 계층에서 이루어진다.
 > * TCP/UDP와 같은 전송 계층 프로토콜을 기반으로 한다.
 > * Service는 IP주소와 포트를 사용하여 트래픽을 특정 Pod로 전달한다.
+
+### 서비스 CIDR 및 IP 할당
+* Service의 IP 주소는 클러스터의 Service CIDR에서 지정된다.
+* CIDR 범위 내에서 유니크한 IP 주소를 할당받는다.
+
+### Headless Service
+* 기본적으로 ClusterIP를 할당받지만, Headless Service를 사용하면 각 Pod에 직접 접근할 수 있도록 DNS역시 바로 Pod IP로 해석된다.
+
+#### Headless Service 예시
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-headless-service
+spec:
+  clusterIP: None  # Cluster IP를 할당받지 않음
+  selector:
+    app: MyApp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+```
+* 위 예시에서 `clusterIP: None`으로 Cluster IP를 할당받지 않도록 지정한다.
+* 대신 해당 서비스의 DNS는 각 Pod에 대한 직접적인 레코드를 갖게 된다.
+* Headless Service를 사용하면 클라이언트는 서비스의 DNS를 통해 각 Pod에 직접적으로 연결할 수 있다.
+* 예를들어 `my-headless-service.default.svc.cluster.local`라는 DNS 주소는 MyApp 레이블을 갖는 모든 Pod에 대한 IP 주소 목록을 반환할 것이다.
+* 이를통해 클라이언트는 직접적으로 Pod에 접근하거나 특정 Pod에 대한 라우팅을 수행할 수 있다.
+
+#### 일반적인 Service와의 차이
+* 일반적인 Service(Cluster IP를 가지는 서비스)는 DNS이름을 통해 서비스에 접근하면 서비스가 가지고 있는 여러 Pod 중 하나로 로드밸런싱을 통해 연결된다.
+  * 서비스는 여러 Pod를 가지고 있고, 클라이언트가 DNS이름으로 서비스에 접근하면 Kubernetes가 로드밸런싱을 수행하여 하나의 Pod에 연결한다.
+* Headless Service는 DNS이름을 통해 서비스에 접근하면, 서비스에 속한 각 Pod에 대한 IP 주소 목록을 반환한다.
+  * 클라이언트는 이 목록을 통해 특정 Pod에 직접적으로 연결할 수 있다.
+  * 로드밸런싱은 수행되지 않으며 클라이언트가 직접 선택한 Pod에 연결된다.
 
 ## Ingress
 * Service는 L4레이어로 TCP에서 Pod들을 밸런싱하며, URL Path에 따른 서비스간 라우팅이 불가능하다.
