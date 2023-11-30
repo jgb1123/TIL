@@ -351,3 +351,17 @@ spec:
 * 클러스터 전체에서의 권한을 설정할 때 사용한다.
   * 예시로, 특정 팀에게 클러스터 전체의 로그 조회 권한을 주고자 할 떄 활용될 수 있다.
 
+## 설치
+### Kubeadm
+* 온프레미스 환경에서 Kubernetes를 설치하는 경우 kubeadm을 사용하면 된다.
+* kubeadm은 Kubernetes를 쉽게 시작할 수 있도록 도와주는 도구이다.
+
+### 클라우드
+* AWS, Azure, GCP와 같은 클라우드에서는 Kubernetes를 관리하는 서비스를 제공한다.
+* AWS : Amazon EKS(Elastic Kubernetes Service)
+* Azure : AKS(Azure Kubernetes Service)
+* GCP :  GKE(Google Kubernetes Engine)
+
+### Minikube
+* 로컬에서 간단한 Kubernetes 클러스터를 실행하려는 경우 Minikube를 사용한다.
+* Minikube는 로컬 환경에서 쉽게 Kubernetes를 실행할 수 있게 해준다.
