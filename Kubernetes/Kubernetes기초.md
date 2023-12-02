@@ -43,6 +43,16 @@
 * 또한 etcd는 백업과 복구를 지원하기 때문에 정기적인 백업을 통해 데이터 손실을 방지하고 필요한 경우에는 백업 데이터를 사용하여 클러스터를 복구할 수 있다.
 * 클러스터에 etcd를 배포하는 방법은 크게 두가지로, scratch를 통한 배포와 kubeadm을 통한 배포가 있다.
 
+#### kube-scheduler
+* Kubernetes 클러스터에서 Pod를 어느 노드에 스케줄링 할지를 결정하는 역할을 하는 컴포넌트이다.
+* 클러스터 내에서 적절한 노드를 찾아 Pod를 배치하고 리소스 관리와 로드밸런싱을 수행하는 중요한 기능을 수행한다.
+* kube-scheduler는 스케줄링을 위한 다양한 정책을 사용한다. 
+  * hardware/software/policy Constraints
+  * individual and collective Resource Requiredments 
+  * Affinity, Anti-Affinity
+* Kubernetes 클러스터에서는 다양한 유형의 워크로드가 실행되기 때문에 kube-scheduler는 이러한 다양성을 처리할 수 있어야 하며, 이를 위해 플러그인 시스템을 사용해 커스텀 스케줄러를 만들어 사용하거나 기존 스케줄러를 확장할 수 있다.
+* 또한 여러 개의 스케줄러를 지원할 수 있으므로, 특정 워크로드 유형 또는 요구사항에 따라 서로 다른 스케줄러를 사용할 수 있다.
+
 
 ### WorkerNode
 * 애플리케이션 컨테이너를 실행하고 관리하는 노드이다.
