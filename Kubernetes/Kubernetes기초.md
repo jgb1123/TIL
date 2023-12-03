@@ -53,6 +53,14 @@
 * Kubernetes 클러스터에서는 다양한 유형의 워크로드가 실행되기 때문에 kube-scheduler는 이러한 다양성을 처리할 수 있어야 하며, 이를 위해 플러그인 시스템을 사용해 커스텀 스케줄러를 만들어 사용하거나 기존 스케줄러를 확장할 수 있다.
 * 또한 여러 개의 스케줄러를 지원할 수 있으므로, 특정 워크로드 유형 또는 요구사항에 따라 서로 다른 스케줄러를 사용할 수 있다.
 
+#### kube-controller-manager
+* kube-controller-manager는 Kubernetes 클러스터에서 동작하는 여러 컨트롤러들을 호스팅하는 컴포넌트이다.
+* kube-controller-manager에는 다양한 종류의 컨트롤러가 포함되어 있다.
+  * Replication Controller, Node Controller, Service Controller, Namespace Controller, StatefulSet Controller HPA Controller 등
+* kube-controller-manager는 클러스터 상태를 지속적으로 모니터링하며 정의된 상태와 현재 상태를 일치시키는 역할을 수행하여 시스템의 안정성을 보장한다.
+* 여러 컨트롤러를 하나의 단일 프로세스로 관리하면서 확장 가능한 구조를 갖고 있다.
+* 또한 사용자는 필요에 따라 새로운 컨트롤러를 만들어 kube-controller-manager에 통합할 수 있다.
+  * 사용자 정의 비즈니스 로직에 따라 클러스터를 제어할 수 있다.
 
 ### WorkerNode
 * 애플리케이션 컨테이너를 실행하고 관리하는 노드이다.
