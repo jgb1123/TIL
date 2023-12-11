@@ -492,6 +492,14 @@ spec:
 * 클러스터 전체에서의 권한을 설정할 때 사용한다.
   * 예시로, 특정 팀에게 클러스터 전체의 로그 조회 권한을 주고자 할 떄 활용될 수 있다.
 
+## CNI
+* CNI는 클러스터에서 컨테이너 간 통신 및 네트워킹을 관리하는 데 사용되는 Container Network Interface의 약자이다.
+* CNI는 컨테이너 간 네트워킹을 제어할 수 있는 플러그인을 만들기 위한 표준이다.
+* Kubernetes에서는 Pod간 통신을 위해 CNI를 사용한다.
+  * Kubernetes 뿐만 아니라 Amazon ECS, cloud Foundry 등 컨테이너 런타임을 포함하는 다양한 플랫폼들은 CNI를 사용중이다.
+* Kubernetes는 기본적으로 kubenet이라는 자체적인 CNI 플러그인을 제공하지만 기능이 매우 제한적이다.
+* 그 단점을 보완하기 위해 3rd-party 플러그인을 사용하며 이러한 플러그인으로는 Calico, Flannel, Weave 등이 있다.  
+
 ## 설치
 ### Kubeadm
 * 온프레미스 환경에서 Kubernetes를 설치하는 경우 kubeadm을 사용하면 된다.
