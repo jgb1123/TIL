@@ -88,3 +88,12 @@
   * 애플리케이션이 상태를 유지하고 이를 기반으로 더 복잡한 처리를 수행할 수 있도록 해준다.
 * 또한 Kafka Stream은 메시지 처리에서 Exactly Once 시맨틱(Semantic)을 지원한다.
   * 데이터 처리에서 중복, 손실 또는 순서 오류를 방지하기위해 보장되는 속성을 의미한다.
+
+## Connect API
+* Kafka Connect API는 Kafka에서 제공하는 데이터 통합 서비스이다.
+* Connect를 통해 Kafka와 다른 데이터 시스템 간에 데이터를 스트리밍하고, 대규모 데이터를 이동시켜주는 커넥터를 빠르게 생성할 수 있다.
+  * Source Connector : Data Source의 데이터를 Kafka Topic에 보내는 역할을 하는 커넥터이다.
+  * Sink Connector : Kafka Topic에 담긴 데이터를 특정 Data Source로 보내는 역할을 하는 커넥터이다.
+* Connect는 데이터 및 일회성 작업을 위한 standalone mode로 실행할 수도 있고, 대규모 운영환경을 위한 distributed mode로 실행할 수도 있다.
+  * distributed mode로 실행하면 워커노드의 장애 상황에서도 유연하게 대응할 수 있으므로 고가용성이 보장된다.
+* 따라서 Kafka Connect를 통해 대량의 데이터를 신속하고 안정적이며 확장 가능하게 이동시킬 수 있다.
