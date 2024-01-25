@@ -28,7 +28,6 @@ public class KafkaProducerConfig {
     }
 }
 ```
-
 ### ConsumerConfig
 ```java
 @EnableKafka
@@ -56,3 +55,11 @@ public class KafkaConsumerConfig {
     }
 }
 ```
+
+### @EnableKafka
+* `@EnableKafka` 어노테이션은 Spring 애플리케이션이 Kafka를 사용할 수 있도록 활성화해준다.
+* `@KafkaListener` 어노테이션이 붙은 메서드를 감지하고 Kafk메시지를 처리하는 리스너로 등록한다.
+* Kafka Producer 및 Consumer를 사용하는데 필요한 빈들을 자동으로 등록한다
+  * `KafkaTemplate`, `ProducerFactory`, `ConsumerFactory`
+* 기본적인 Kafka 구성을 활성화하고 기본값을 설정한다
+  * ex) Kafka 서버의 주소, Serializer 클래스 등
