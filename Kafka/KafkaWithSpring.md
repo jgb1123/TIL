@@ -28,6 +28,10 @@ public class KafkaProducerConfig {
     }
 }
 ```
+* `BOOTSTRAP_SERVERS_CONFIG` : Producer가 처음으로 연결할 Broker의 위치를 설정한다.
+* `KEY_DESERIALIZER_CLASS_CONFIG` & `VALUE_DESERIALIZER_CLASS_CONFIG` : Producer가 Key와 Value값의 데이터를 Broker로 전송하기 전에 데이터를 byte array로 변환하는데 사용하는 직렬화 메커니즘을 설정한다.
+  * Kafka는 네트워크를 통해 데이터를 전송하기 때문에 객체를 byte array로 변환하는 직렬화 과정이 필요함
+
 ### ConsumerConfig
 ```java
 @EnableKafka
@@ -69,11 +73,11 @@ public class KafkaConsumerConfig {
 @RestController
 @RequiredArgsConstructor
 public class TestProducerController {
-    private final KafkaProducer kafkaProducer;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
     
     @PostMapping("/sendTest")
     public ResponseEntity<String> sendMessage(@RequestBody PostDto postDto) {
-        kafkaProducer.send("my-topic", postDto.getMsg());
+        kafkaProducer.send("my-topic", postDto);
         return ResponseEntity.ok("success");
     }
 }
