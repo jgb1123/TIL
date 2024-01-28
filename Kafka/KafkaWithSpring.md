@@ -77,8 +77,19 @@ public class TestProducerController {
     
     @PostMapping("/sendTest")
     public ResponseEntity<String> sendMessage(@RequestBody PostDto postDto) {
-        kafkaProducer.send("my-topic", postDto);
+        kafkaProducer.send("my-topic", postDto.getMessage());
         return ResponseEntity.ok("success");
+    }
+}
+```
+
+## Consumer
+```java
+@Service
+public class TestConsumer {
+    @KafkaListener(topic = "my-topic", groupId="consumerGroupId")
+    public void listener(Obejct data) {
+      System.out.println(data);
     }
 }
 ```
