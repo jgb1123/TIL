@@ -118,3 +118,14 @@
 #### acks = all(-1)
 * Producer는 자신이 보낸 메시지에 대해 카프카의 leader와 follower까지 받았는지 기다린다.
 * 최소 하나의 복제본까지 처리가 된 것을 확인하기 때문에 메시지가 손실될 일이 거의 없다.
+
+### Idempotence(멱등성) producer
+* Producer는 Record 단위로 메시지를 발행하여 Acks(Acknowledgements)를 받는 작업을 atomic하게 수행한다.
+* Consumer는 Partition offset으로부터 Record 단위로 데이터를 읽고 변경된 offset을 commit하는 작업을 atomic하게 수행한다.
+* 만약 네트워크 장애로 인해 Ack가 유실된다면 Ack가 유실되는 수 만큼 레코드를 중복 적재하게 된다.
+* 이러한 문제로 데이터가 중복 적재되는 것을 막기 위해 enable.idempotence옵션을 제공하며, Kafka3.0버전 이후부터는 default 값이 true로 설정된다.
+  ```java
+  properties.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+  ```
+* Idempotence producer는 Record를 Broker로 전송할 때 PID(Producer unique Id)와 Seq(Sequence number)를 함께 전달한다.
+* Broker는 PID와 Seq를 가지고 중복된 레코드가 오면 무시하게 된다.
