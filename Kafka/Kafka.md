@@ -129,3 +129,15 @@
   ```
 * Idempotence producer는 Record를 Broker로 전송할 때 PID(Producer unique Id)와 Seq(Sequence number)를 함께 전달한다.
 * Broker는 PID와 Seq를 가지고 중복된 레코드가 오면 무시하게 된다.
+
+### Transaction Producer
+* Consumer가 또 다른 Producer가 되어 여러 Topic에 메시지를 발행할 수 있다.
+  * Producer가 이벤트를 발행하고 Consumer에서 특정 이벤트를 받은 후, Comsumer 쪽에서 또 다른 이벤트를 발행할 수 있다.
+* 이러한 상황에서 데이터를 처리하고 offset commit을 하기 전에 장애가 발생하면,오프셋이 커밋되지 않은 채로 애플리케이션이 종료될 수 있다.
+* 그러면 다시 동작할 때 이미 전달한 레코드를 중복하여 처리하게 된다.
+* 이러한 문제를 해결하기 위해선 Offset commit과 레코드 전달을 하나로 묶어야 한다.
+* Transaction Producer를 통해 Consumer가 offset commit하지 않고 Producer가 트랜잭션 내부에서 커밋하도록 한다.
+* 이러한 기능을 사용하기 위해선 Auto Commit Config를 false로 설정해야 한다.
+  ```java
+  properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+  ```
