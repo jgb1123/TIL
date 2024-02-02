@@ -141,3 +141,16 @@
   ```java
   properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
   ```
+  
+### Idempotence(멱등성) Consumer
+#### Unique Key 활용
+* 데이터의 unique key를 활용하여 중복 적재를 방지한다.
+* 저장소에서는 데이터의 유일성을 보장할 수 있는 기능이 필요하다.
+
+#### Upsert 활용
+* 중간 결과값들을 저장소에 저장하고 최종 결과값으로 Update하는 방식이다.
+* 중간 단계에서 발생한 데이터 중복이 최종 결과에 영향을 미치지 않도록 하며, 최종적으로 최신 데이터만이 저장되도록 한다.
+
+#### Write-ahead log 활용
+* 트랜잭션이 커밋되기전에 WAL에 미리 기록하여 적재 과정을 Atomic하게 보관한다.
+* 중복 적재를 검사할 때 로그 파일과 Topic offset들을 확인해야 하기 떄문에 로직이 복잡해질 수 있다.
