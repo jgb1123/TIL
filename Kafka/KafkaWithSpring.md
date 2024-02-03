@@ -93,3 +93,14 @@ public class TestConsumer {
     }
 }
 ```
+
+## 데이터 신뢰성
+* Kafka를 통해 원하는 로직을 단 한번만 실행시키는 것이 보장되지 않을 수 있는 상황이 생긴다.
+* 이러한 문제를 해결하기 위해 여러가지 고려해야 할 사항들이 있다.
+
+### Consumer Group의 분리
+* 예시로 이벤트를 Consume하고, RDB에 데이터를 저장하는 로직과 Redis에 pub을 하는 기능이 있을 수 있다.
+* Redis pub 로직을 실행하고, RDB에 데이터를 저장하는데 만약 트랜잭션에서 문제가 발생하면 롤백 되므로 Kafka commit이 실패하게 된다.
+* RDB는 롤백되지만 Redis에는 이미 pub이 보내지게 되고 이벤트를 다시 consume하기 때문에 Redis에서는 pub이 여러번 발생하게 된다.
+* 이러한 문제를 방지하기 위해선 Consumer Group을 분리하여 DB에 데이터를 쓰는 Consumer Group과 Redis에 pub하는 Consumer Group을 분리해야 한다.
+* Consumer Group을 분리하여 되면 각각의 작업을 처리하도록하면 데이터 일관성을 유지하고 중복 발행을 반지할 수 있다.
