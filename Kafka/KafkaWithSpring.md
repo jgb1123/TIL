@@ -104,3 +104,12 @@ public class TestConsumer {
 * RDB는 롤백되지만 Redis에는 이미 pub이 보내지게 되고 이벤트를 다시 consume하기 때문에 Redis에서는 pub이 여러번 발생하게 된다.
 * 이러한 문제를 방지하기 위해선 Consumer Group을 분리하여 DB에 데이터를 쓰는 Consumer Group과 Redis에 pub하는 Consumer Group을 분리해야 한다.
 * Consumer Group을 분리하여 되면 각각의 작업을 처리하도록하면 데이터 일관성을 유지하고 중복 발행을 반지할 수 있다.
+
+### Producer idempotent
+* 이벤트 중복 생성을 방지하기 위해 enable.idempotent옵션을 true로 변경해야 한다. (kafka 3.0 이후 부터는 dafault)
+  * retry는 0보다 크게, max.in.flight.requests.per.connection은 5 이하여야 한다.
+* 또한 acks를 all로 설정한다.
+  * akcs를 all로 설정해도 follower에 produce가 되지 않을 수 있다.
+  * ack신호를 받아야 하는 in-sync replicas의 수를 명시해 줘야 한다.
+  * 기본적으로 min.insync.replicas는 1로 설정되어 있기 때문에 leader에서만 ack를 받으면 produce가 된다.
+  * 모든 replica에 produce가 잘 되는것을 보장받기 위해서는 이 옵션을 replication factor와 맞춰 설정해야 한다.
