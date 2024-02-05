@@ -113,3 +113,19 @@ public class TestConsumer {
   * ack신호를 받아야 하는 in-sync replicas의 수를 명시해 줘야 한다.
   * 기본적으로 min.insync.replicas는 1로 설정되어 있기 때문에 leader에서만 ack를 받으면 produce가 된다.
   * 모든 replica에 produce가 잘 되는것을 보장받기 위해서는 이 옵션을 replication factor와 맞춰 설정해야 한다.
+
+## Round-Robin 문제
+* Kafka에서는 이벤트를 생성하는 여러 방법이 있다.
+  * 특정 파티션을 지정하여 이벤트를 생성하게 할 수 있다.
+  * key값을 지정하면 hash를 통해 생성된 갑승로 파티션을 지정하여 해당 파티션에 produce된다.
+  * 기본적으로 고르게 파티션에 이벤트가 프로듀스 되도록 하는 방식이 있다. (Round-Robin)
+
+### Produce시 문제
+* 이벤트는 produce시 batch를 통해 여러개의 이벤트를 모아서 처리한다.
+* Round-Robin 방식에서는 모든 파티션에 이벤트를 고르게 생성해야 한다.
+* 따라서 produce 중, 특정 파티션에 produce가 어려운 상황이 발생하면 해당 파티션에 대한 produce 작업이 지연되어 대기하는 시간이 필요하게 된다.
+
+### Consume시 문제
+* 이벤트는 consume시 하나의 파티션에 대해서 하나의 consumer가 특정 batch size를 가지고 이벤트를 consume한다.
+* Round-Robin 방식에서는 파티션마다 이벤트가 분산되어 있기 때문에 한번에 가져올 수 있는 이벤트 숫자가 적고, 더 여러번 배치작업을 수행해야 한다.
+
