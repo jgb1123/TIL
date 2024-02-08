@@ -15,3 +15,42 @@
 * 잘못된 데이터를 충돌이나 중단 없이 처리할 수 있어야 한다.
 * 문제가 발생하였을 때 어디서 잘못되었는지 추적 가능해야 한다.(로깅, 알림)
 * 지정한 시간 안에 처리를 완료해야 하며, 동시에 실행되는 다른 애플리케이션을 방해하지 않도록 해야 한다.
+
+## Spring Scheduler?
+* Scheduler란 특정한 시간에 어떠한 작업을 자동으로 실행시키는 작업이다.
+* 대표적인 예로 Spring Scheduler와 Quartz 등이 있다.
+* Spring Scheduler는 이러한 Scheduler 라이브러리이다.
+* Spring Scheduler는 Spring Framework 사용 시 추가적인 의존성이 불필요하며, 어노테이션을 통해 간단하게 사용이 가능하다.
+* Spring Scheduler는 하나의 Thread pool을 사용한다.
+
+## Spring Scheduler 사용방법
+### @EnableScheduling
+* SpringBootApplication class에 `@EnableScheduling` 어노테이션을 추가한다.
+
+```java
+@EnableScheduling
+@SpringBootApplication
+public class SchedulerTestApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(DemoApplication.class, args);
+    }
+}
+```
+
+### @Scheduled
+* 스케줄링을 해야할 곳에 `@Scheduled` 애너테이션을 추가한다.
+
+```java
+@Service
+public class SchedulerTestService {
+    
+    @Scheduled(fixedDelay = 1000)
+    public void testService() {
+        System.out.println("Scheduler Test");
+    }
+}
+```
+#### @Scheduled 조건
+* Bean에 등록된 클래스에서만 사용 가능하다.
+* 해당 메서드는 void 타입이어야 한다.
+* 해당 메서드는 파라미터를 사용할 수 없다.
