@@ -54,3 +54,42 @@ public class SchedulerTestService {
 * Bean에 등록된 클래스에서만 사용 가능하다.
 * 해당 메서드는 void 타입이어야 한다.
 * 해당 메서드는 파라미터를 사용할 수 없다.
+
+#### scheduled 속성
+* scheduled 속성을 이용해 스케줄링 방식을 설정할 수 있다.
+
+##### FixedDelay
+* milliseconds 단위로 이전 task의 종료 시점으로부터 정의된 시간만큼 지난 후 task를 실행한다.
+
+```java
+@Scheduled(fixedDelay = 1000)
+public void fixedDelayTest() {
+    System.out.println("fixedDelay Test");
+}
+```
+
+```
+@Scheduled(fixedDelayString = "1000")
+public void fixedDelayTest() {
+    System.out.println("fixedDelayString Test");
+}
+```
+* fixedDelayString는 fixedRate와 같고 값만 문자열로 작성한다
+
+##### fixedRate
+* milliseconds 단위로 이전 task의 시작시점으로부터 정의된 시간만큼 지난 후 task를 실행한다.
+
+```java
+@Scheduled(fixedRate = 1000)
+public void fixedDelayTest() {
+    System.out.println("fixedRate Test");
+}
+```
+
+```java
+@Scheduled(fixedRateString = "1000")
+public void fixedDelayTest() {
+    System.out.println("fixedRate Test");
+}
+```
+* fixedRateString는 fixedRate와 같고 값만 문자열로 작성한다.
