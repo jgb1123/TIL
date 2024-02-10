@@ -93,3 +93,22 @@ public void fixedDelayTest() {
 }
 ```
 * fixedRateString는 fixedRate와 같고 값만 문자열로 작성한다.
+
+##### initialDelay
+* 스케줄러에서 메서드가 등록되자마자 수행하는 것이 아닌 초기 지연시간을 설정한다.
+
+```java
+@Scheduled(fixedRate = 5000, initialDelay = 30000)
+public void initialDelayTest() {
+    System.out.println("initialDelay Test");
+}
+```
+* 위와같이 사용하면 30초의 대기시간 후 5초마다 동작한다.
+
+```java
+@Scheduled(fixedRate = 5000, initialDelayString = "30000")
+public void initialDelayTest() {
+    System.out.println("initialDelay Test");
+}
+```
+* initialDelayString은 initialDelay와 같고 값만 문자열로 작성한다.
