@@ -155,3 +155,43 @@ public void cronTest() {
     System.out.println("cron Test");
 } 
 ```
+
+### Thread Pool
+```java
+@Component
+@Slf4j
+public class TestScheduler {
+	
+    @Scheduled(fixedRate = 1000)
+    public void test1() throws InterruptedException {
+    	Thread.sleep(10000);      // 10초 대기
+        log.info("test1 : " + LocalDateTime.now());
+        
+    }
+    
+    @Scheduled(fixedRate = 1000)
+    public void test2() {
+        log.info("test1 : " + LocalDateTime.now());   
+    }
+}
+```
+* 위와 같은 상황에서는 test1에서의 작업 때문에 test2는 1초마다 한번씩 돌 수 없는 상황이 생긴다.
+* Scheduler를 사용 시 이러한 문제를 해결하기 위해 단일 Thread가 아닌 멀티 쓰레드로 동작하도록 해야 한다.
+
+#### Config Class를 통한 설정
+```java
+@Configuration
+public class SchedulerConfig implements SchedulingConfigurer {
+
+	@Override
+	public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+		ThreadPoolTaskScheduler threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
+
+        threadPoolTaskScheduler.setPoolSize(5);
+        threadPoolTaskScheduler.setThreadPrefix("Thread - ");
+        threadPoolTaskScheduler.initialize();
+        
+		taskRegistrar.setTaskScheduler(threadPoolTaskScheduler);
+	}
+}
+```
