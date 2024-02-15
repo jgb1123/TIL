@@ -156,6 +156,14 @@ public void cronTest() {
 } 
 ```
 
+#### @Scheduled 속성 선택
+* 각각의 속성의 특징을 잘 이해하고 상황에 맞게 사용할 줄 알아야 한다.
+* `fixedDelay`같은 경우에는 내부 로직이 돌아가는 시간도 고려되기 때문에 정확히 원하는 시간마다 정확히 맞춰서 해당 로직을 실행시키고자 할 땐 문제가 생기기도 한다.
+* `fixedRate`같은 경우에는 원하는 정확한 시간마다 반복할 순 있지만, 내부 로직의 실행 시간까지 고려를 해야하거나, 특정 세부적인 케이스에서는 사용하는 데에는 한계가 있다. (밤 12부터 아침6시까지는 5분마다 실행, 각 정각마다 실행 등)
+* 그에 반면 cron의 경우 여러 세부적인 케이스에 대해서 다양한 설정이 가능하다는 장점이 있다. 하지만 내부 로직이 돌아가는 시간도 고려해야 하는 상황에는 부적절 할 수 있다.
+* 여러 옵션들 중 그 상황에 가장 잘 맞는 옵션을 선택해야 한다.
+* 보통 `fixedDalay`와 `cron`으로 대부분 케이스의 커버가 가능하다.
+
 ### Thread Pool
 ```java
 @Component
@@ -195,3 +203,9 @@ public class SchedulerConfig implements SchedulingConfigurer {
 	}
 }
 ```
+
+#### application.properties를 통한 설정
+```properties
+spring.task.scheduling.pool.size=5
+```
+
