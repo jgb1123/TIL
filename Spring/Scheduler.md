@@ -209,3 +209,11 @@ public class SchedulerConfig implements SchedulingConfigurer {
 spring.task.scheduling.pool.size=5
 ```
 
+
+### Shedlock
+* Spring Scheduler에서는 여러 대의 인스턴스에 대한 클러스터링 기능은 제공하지 않는다.
+* 따라서 서버의 인스턴스가 여러 대로 늘어나야 하는 상황에서 Scheduler가 중복으로 실행되어 문제를 일으킬 수 있다.
+* ShedLock은 분산 스케줄러는 아니고 단지 Lock을 통해 스케줄러의 중복 실행을 방지해줄 뿐이다.
+  * 분산 스케줄러가 필요하다면 Quartz와 같은 분산 스케줄러를 사용하는 것이 좋다.
+* 여러 스케줄러가 동시에 실행될 때 하나의 스케줄러가 락을 걸고 작업을 수행하며, 작업을 마친 스케줄러는 락을 반환하는 구조이다.
+* 이러한 Shedlock의 구현에는 반드시 저장소가 필요하다.
