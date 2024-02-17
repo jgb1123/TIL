@@ -32,7 +32,7 @@
 @SpringBootApplication
 public class SchedulerTestApplication {
     public static void main(String[] args) {
-        SpringApplication.run(DemoApplication.class, args);
+        SpringApplication.run(SchedulerTestApplication.class, args);
     }
 }
 ```
@@ -215,5 +215,15 @@ spring.task.scheduling.pool.size=5
 * 따라서 서버의 인스턴스가 여러 대로 늘어나야 하는 상황에서 Scheduler가 중복으로 실행되어 문제를 일으킬 수 있다.
 * ShedLock은 분산 스케줄러는 아니고 단지 Lock을 통해 스케줄러의 중복 실행을 방지해줄 뿐이다.
   * 분산 스케줄러가 필요하다면 Quartz와 같은 분산 스케줄러를 사용하는 것이 좋다.
+* ShedLock은 병렬로 실행할 준비는 되지 않았지만 안전하게 반복 실행할 수 있는 예약된 작업이 있는 상황에서 사용하도록 설계되었다.
 * 여러 스케줄러가 동시에 실행될 때 하나의 스케줄러가 락을 걸고 작업을 수행하며, 작업을 마친 스케줄러는 락을 반환하는 구조이다.
 * 이러한 Shedlock의 구현에는 반드시 저장소가 필요하다.
+
+#### Shedlock 사용법
+##### @EnableSchedulerLock
+* `@EnableScheduling`이 있는곳에 `@EnableSchedulerLock`를 함께 선언해 주면 된다.
+
+##### @SchedulerLock
+* `@SchedulerLock` Lock을 사용할 스케줄링 Task에 선언해주면 된다.
+  * 해당 애너테이션이 달린 메서드만 Lock을 사용하게 되며, 다른 스케줄링 Task들은 ShedLock 라이브러리가 무시한다.
+* Lock에 대한 이름을 지정할 수 있고, 동일한 이름을 가진 task는 동시에 오직 하나만 실행된다.
