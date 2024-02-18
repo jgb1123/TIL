@@ -227,3 +227,22 @@ spring.task.scheduling.pool.size=5
 * `@SchedulerLock` Lock을 사용할 스케줄링 Task에 선언해주면 된다.
   * 해당 애너테이션이 달린 메서드만 Lock을 사용하게 되며, 다른 스케줄링 Task들은 ShedLock 라이브러리가 무시한다.
 * Lock에 대한 이름을 지정할 수 있고, 동일한 이름을 가진 task는 동시에 오직 하나만 실행된다.
+```java
+@Component
+@Slf4j
+public class TestScheduler {
+
+  @Scheduled(cron = "0 * * * * *")
+  @SchedulerLock(name = "cronTestLock", lockAtLeastFor = "20s", lockAtMostFor = "50s")
+  public void cronTest() throws InterruptedException {
+    Thread.sleep(10000);      // 10초 대기
+    log.info("test1 : " + LocalDateTime.now());
+  }
+}
+```
+* `name` : Lock의 네임을 지정한다. 다른 스케줄러 Task들과 중복되지 않도록 유니크하게 설정해야 한다.
+* `defaultLockAtLeastFor`, `lockAtLeastFor` : Lock이 유지되는 최소 시간이다.
+  * Task의 반복 시간이 매우 짧으며, 수행 시간이 매우 빠를 경우 중복 실행이 일어나는 문제를 방지할 수 있다.
+* `defaultLockAtMostFor`, `lockAtMostFor` : Lock이 유지되는 최대 시간이다.
+  * Task의 수행 시간이 매우 길어지거나 끝나지 않을 경우 다음 Task가 실행되지 않는 문제를 방지할 수 있다.
+* `lockAtLeastFor`, `lockAtMostFor`를 지정하지 않으면 `defaultLockAtLeastFor`, `defaultLockAtMostFor`이 적용된다.
