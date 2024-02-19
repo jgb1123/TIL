@@ -246,3 +246,10 @@ public class TestScheduler {
 * `defaultLockAtMostFor`, `lockAtMostFor` : Lock이 유지되는 최대 시간이다.
   * Task의 수행 시간이 매우 길어지거나 끝나지 않을 경우 다음 Task가 실행되지 않는 문제를 방지할 수 있다.
 * `lockAtLeastFor`, `lockAtMostFor`를 지정하지 않으면 `defaultLockAtLeastFor`, `defaultLockAtMostFor`이 적용된다.
+
+##### Lock Provider
+* Shedlock에는 Redis, JDBC, MongoDB등 많은 Provider를 제공하고 있다.
+* 따라서 필요에 맞게 선택하면 되고, 제공되는 Provider들과 필요한 데이터베이스 테이블 DDL, 설정 법 등은 [Shedlock Github](https://github.com/lukas-krecan/ShedLock)에 자세히 소개되어 있다.
+* 필요에 맞게 선택 후 설정을 완료하면 스케줄링 Task가 실행되면 Lock이 생성되어 데이터베이스에 저장되게 된다.
+* Shedlock은 히스토리를 남기지 않고 Lock유지가 필요한 시간만큼만 데이터가 존재하다가 지워진다.
+  * 휘발성으로 데이터가 관리되기 때문에 in-memory DB를 사용해도 좋다.
