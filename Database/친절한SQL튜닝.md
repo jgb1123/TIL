@@ -1707,3 +1707,357 @@ where c.가입일시 >= trunc(add_months(sysdate, -1), 'mm')    -- 전월 이후
 >   * 오히려 개발자들이 이러한 구문을 남용함으로 얽히고 설킨 복잡한 쿼리만 생겨날 수 있다.
 > * 즉, **기본적으로 Lateral 인라인 뷰, Cross/Outer Apply 조인을 쓸 이유는 없다.**
 > * 튜닝 과정에 알 수 없는 이유로 조인 조건 Pushdown 기능이 잘 작동하지 않을 때만 활용하면 된다.
+
+### 스칼라 서브쿼리 조인
+#### 스칼라 서브쿼리의 특징
+* SELECT-LIST에 사용한 함수가 있다면, 함수 안에 있는 SELECT 쿼리를 메인쿼리 건수만큼 재귀적으로 반복 실행한다.
+* 하지만 스칼라 서브쿼리는 건수만큼 해당 테이블을 반복해서 읽으며, 레코드마다 정확히 하나의 값만 반환한다.
+  * 함수처럼 재귀적으로 실행하는 구조는 아니며, Outer 조인문처럼 하나의 문장으로 이해한다.
+  * 조인과 차이가 있다면 스칼라 서브쿼리는 처리 과정에서 캐싱 작용이 일어난다는 것이다.
+
+#### 스칼라 서브쿼리 캐싱 효과
+* 스칼라 서브쿼리로 조인하면 오라클은 조인 횟수를 최소화하려고 입력 값과 출력 값을 내부 캐시에 저장해 둔다.
+* 조인할 때마다 일단 캐시에서 입력값을 찾아보고 찾으면 저장된 출력값을 반환한다.
+* 캐시에서 찾지 못할 때만 조인을 수행하며, 결과는 버리지 않고 캐시에 저장해둔다.
+* 스칼라 서브쿼리의 입력 값은, 그 안에서 참조하는 메인쿼리의 컬럼 값이다.
+* 스칼라 서브 쿼리 캐싱은 필터 서브쿼리 캐싱과 같은 기능이다.
+* 이러한 캐싱 메커니즘은 조인성능을 높이는데 큰 도움이 된다.
+  * 메인쿼리 집합이 아무리 커도 조인할 데이터를 대부분 캐시에서 찾는다면 조인 수행횟수를 최소화할 수 있다.
+* 캐싱은 쿼리 단위로 이루어지며, 쿼리를 시작할 때 PGA 메모리에 공간을 할당하고 쿼리를 수행하면서 공간을 채워나가며 쿼리를 마치는 순간 공간을 반환한다.
+
+```oracle
+select empno, ename, sal, hiredate
+     , (select GET_DNAME(e.deptno) from dual) dname
+from emp e
+where sal >= 2000
+```
+* SELECT-LIST에 사용한 함수는 메인쿼리 결과 건수만큼 반복 수행되는데, 위와 같이 스칼라 서브쿼리를 덧씌우면 호출 횟수를 최소화할 수 있다. (캐싱 효과 때문)
+* 함수에 내장된 SELECT 쿼리도 그만큼 덜 수행된다.
+
+#### 스칼라 서브쿼리 캐시 부작용
+* 모든 캐시가 다 그렇듯이, 캐시 공간은 늘 부족하다.
+* 스칼라 서브쿼리에 사용하는 캐시도 매우 작은 메모리 공간이다.
+* 스칼라 서브쿼리 캐싱 효과는, **입력 값의 종류가 소수여서 해시 충돌 가능성이 작을 때 효과가 있다.**
+  * 반대의 경우라면 캐시를 매번 확인하는 비용으로 인해 성능이 나빠지고 CPU 사용률만 높게 만들며, 메모리도 더 사용한다.
+  ```oracle
+  select 거래번호, 고객번호, 영업조직ID, 거래구분코드
+       , (select 거래구분명 from 거래구분 where 거래구분코드 = t.거래구분코드) 거래구분명
+  from 거래 t
+  where 거래일자 >= to_char(add_months(sysdate, -3), 'yyyymmdd') -- 50,000건
+  ```
+  * 위 예시에서, 거래구분코드가 20개의 값이 존재한다면 효율적인 캐싱이 일어난다.
+  ```oracle
+  select 거래번호, 고객번호, 영업조직ID, 거래구분코드
+       , (select 고객명 from 고객 where 고객번호 = t.고객번호) 거래구분명
+  from 거래 t
+  where 거래일자 >= to_char(add_months(sysdate, -3), 'yyyymmdd') -- 50,000건
+  ```
+  * 위 예시에서, 고객이 매우 많다면 메인 쿼리에서 50000개의 거래를 읽는 동안 매번 탐색하지만, 대부분은 찾지 못해 결국 조인을 해야 한다.
+    * 불필요한 캐시 탐색으로 인해 일반 조인문보다 느리고 불필요하게 자원만 낭비하게 된다.
+* 또한 **메인쿼리 집합이 매우 작은 경우에는 스칼라 서브쿼리 캐싱이 성능에 도움을 주지 못한다.**
+  ```oracle
+  select 계좌번호, 계좌명, 고객번호, 개설일자, 계좌종류구분코드
+       , (select brch_nm(관리지점코드) from dual) 관리지점명
+       , (select brch_nm(개설지점코드) from dual) 개설지점명
+  from 계좌
+  where 고객번호 = :고객번호
+  ```
+  * 위 예시에서는 고객당 계좌가 많지 않고 보통은 한 개일 것이기 때문에 쓰지도 않을 캐시를 할당해 값을 채웠다가 바로 버리는 결과가 생긴다.
+
+#### 두 개 이상의 값 반환
+* 스칼라 서비쿼리에는 치명적인 제약이 있는데, 두 개 이상의 값을 반환할 수 없다는 제약이다.
+  * 부분범위처리가 가능하다는 스칼라 서브쿼리의 장점을 이용하고 싶더라도, 아래와 같은 쿼리는 불가능하다.
+  ```oracle
+  select c.고객번호, c.고객명
+       , (select avg(거래금액), min(거래금액), max(거래금액)
+          from 거래
+          where 거래일시 >= trunc(sysdate, 'mm')
+            and 고객번호 = c.고객번호)
+  from 고객 c
+  where c.가입일시 >= trunc(add_months(sysdate, -1), 'mm')
+  ```
+  * 이럴 때 튜너들이 전통적으로 많이 사용해 온 방식은 아래와 같다.
+  ```oracle
+  select 고객번호, 고객명
+       , to_number(substr(거래금액, 1, 10)) 평균거래금액
+       , to_number(substr(거래금액, 11, 10)) 최소거래금액
+       , to_number(substr(거래금액, 21)) 최대거래금액
+  from (
+      select c.고객번호, c.고객명
+           , (select lpad(avg(거래금액), 10) || lpad(min(거래금액), 10) || max(거래금액)
+              from 거래
+              where 거래일시 >= trunc(sysdate, 'mm')
+                and 고객번호 = c.고객번호) 거래금액
+      from 고객 c
+      where c.가입일시 >= trunc(add_months(sysdate, -1), 'mm')
+  )
+  ```
+  * 위와 같이 구하는 값들을 문자열로 결합 후 바깥쪽 액세스 쿼리에서 substr함수로 분리하는 방식이다.
+  * 또한 오브젝트 TYPE을 사용하는 방법도 있지만, TYPE을 미리 선언해두어야 하기 때문에 불편해서 잘 쓰이지 않는다.
+* 두 개 이상 값을 반환하고 싶을 때에는 인라인 뷰를 사용하면 편하긴 하다.
+  ```oracle
+  select c.고객번호, c.고객명, t.평균거래, t.최소거래, t.최대거래
+  from 고객 c
+      , (select 고객번호, avg(거래금액) 평균거래
+              , min(거래금액) 최소거래, max(거래금액) 최대거래
+         from 거래
+         where 거래일시 >= trunc(sysdate, 'mm')
+         group by 고객번호) t
+  where c.가입일시 >= trunc(add_months(sysdate, -1), 'mm')
+    and t.고객번호(+) = ㅊ.rhrorqjsgh
+  ```
+  * 하지만 뷰를 사용하면, 뷰가 머징되지 않았을 때 당월 거래 전체를 읽어야 하거나, 뷰가 머징될 때 Group By 때문에 부분범위처리가 안되는 문제가 있다.
+  * 따라서 SQL튜너들은 두 개 이상의 값을 반환해야 할 때 스칼라 서브쿼리와 인라인 뷰 사이에서 많은 고민을 했었다.
+  * 11g 이후로눈 조언 조건 Pushdown 기능이 잘 작동하므로 인라은 뷰를 마음편히 사용할 수 있게 되었다.
+
+#### 스칼라 서브쿼리 Unnesting
+* 스칼라 서브쿼리도 NL 방식으로 조인하므로 캐싱효과가 크지 않으면 랜덤 I/O 부담이 있다.
+* 그래서 다른 조인방식을 선택하기 위해 스칼라 서브쿼리를 일반 조인문으로 변환하고 싶을 때가 있다.
+* 병렬 쿼리에선 될 수 있으면 스칼라 서브쿼리를 사용하지 않아야 한다.
+  * 대량 데이터를 처리하는 병렬 쿼리는 해시 조인으로 처리해야 효과적이기 때문이다.
+* 어떤 이유에서건, 사용자가 직접 쿼리를 변환해야 하는 상황에서 길고 복잡한 스칼라 서브쿼리를 만나면 반갑지 않다.
+* 오라클 12c부터 스칼라 서브쿼리도 Unnesting이 가능해졌는데, 옵티마이저가 사용자 대신 자동으로 쿼리를 변환해 주는 것이다.
+  * 하지만 이 기능 때문에 곤욕을 치르는 경우도 많이 생겼다.
+  * `_optimizer_unnest_scalar_sq` 파라미터를 false로 설정함으로써 일단 문제를 해결했었다.
+  * 또한 `no_unnest` 힌트를 이용해 부분적으로 해결하기도 했다.
+* `_optimizer_unnest_scalar_sq` 파라미터를 true로 설정하면, 스칼라 서브쿼리를 Unnesting 할 지 여부를 옵티마이저가 결정한다.
+  * false로 설정하면 옵티마이저가 이 기능을 사용하진 않지만, 사용자가 `unnest`힌트로 유도할 순 있다.
+
+# 소트 튜닝
+## 소트 연산에 대한 이해
+* SQL 수행 도중, 가공된 데이터 집합이 필요할 때 오라클은 PGA와 Temp 테이블스페이스를 활용한다.
+* 소트 머지 조인, 해시 조인, 데이터 소트와 그룹핑 등이 대표적이다.
+
+### 소트 수행 과정
+* 소트는 기본적으로 PGA에 할당한 Sort Area에서 이루어진다.
+* 메모리 공간인 Sort Area가 다 차면 디스크 Temp 테이블스페이스를 활용한다.
+* Sort Area에서 작업을 완료할 수 있는 지에 따라 소트를 두가지 유형으로 나눈다.
+  * 메모리 소트(In-Memory Sort) : 전체 데이터의 정렬 작업을 메모리 내에서 완료하는것을 말하며, Internal Sort 라고도 한다.
+  * 디스크 소트(To-Disk Sort) : 할당받은 Sort Area 내에서 정렬을 완료하지 못해 디스크 공간까지 사용하는 경우를 말하며, External Sort 라고도 한다.
+* 디스크 소트 과정은 아래와 같다.
+  * 소트할 대상 집합을 SGA 버퍼캐시를 통해 읽어들이고, 일차적으로 Sort Area에서 정렬을 시도한다.
+  * 양이 많을 경우 정렬된 중간 집합을 Temp 테이블스페이스에 임시 세그먼트를 만들어 저장한다.
+    * Sort Area가 찰 때마다 Temp 영역에 저장해 둔 중간 단계의 집합을 Sort Run 이라고 부른다.
+  * 정렬된 최종 결과집합을 얻으려면 다시 Merge해야 하는데, 각 Sort Run 내에서는 이미 정렬된 상태이므로 Merge과정은 어렵지 않다.
+* 소트 연산은 메모리 집약적일 뿐만 아니라, CPU 집약적이기도 하다.
+* 처리할 데이터량이 많을 때는 디스크 I/O까지 발생하므로, 쿼리 성능을 좌우하는 매우 중요한 요소이다.
+  * 디스크 소트가 발생하는 순간 SQL 수행 성능은 나빠질 수 밖에 없다.
+* 또한, **부분범위 처리를 불가능하게 함으로써 OLTP 환경에서 애플리케이션 성능을 저하시키는 주 요인이 되기도 한다.**
+* 따라서 디스크 소트가 발생하지 않도록 SQL을 작성해야 하며, 소트가 불가피한 경우 메모리 내에서 수행을 완료할 수 있도록 해야 한다.
+
+### 소트 오퍼레이션
+#### Sort Aggregate
+* Sort Aggregate는 전체 로우를 대상으로 집계를 수행할 때 나타난다.
+* Sort라는 표현을 사용하지만 실제로 데이터를 정렬하진 않고, Sort Area를 사용한다는 의미로 이해하면 된다.
+```oracle
+select deptno, sum(sal), max(sal), min(sal), avg(sal) from emp 
+```
+* 데이터를 정렬하지 않고 SUM, MAX, MIN, AVG 값을 구하는 법
+  * Sort Area에 SUM, MAX, MIN, COUNT 값을 위한 변수를 각각 하나씩 할당한다.
+  * 테이블 첫 레코드에서 읽은 해당 컬럼의 값을 SUM, MAX, MIN 변수에 저장하고, COUNT 변수에는 1을 저장한다.
+  * 테이블에서 레코드를 하나씩 읽어내려가며 SUM 변수에는 값을 누적하고, MAX 변수에는 기존보다 큰 값이 나타날 때만 대체하고, MIN 변수도 기존보다 작은 값이 나타날 때만 값을 대체하며, COUNT 변수에는 NULL이 아닌 레코드를 만날때마다 1씩 증가시킨다.
+  * 레코드를 다 읽고 나면 SUM, MAX, MIN, COUNT 변수에 각각 해당하는 값들이 저장되어 있으며, 그 값을 그대로 출력하면 되고 AVG는 SUM 값을 COUNT로 나눈 값을 출력한다.
+
+#### Sort Order By
+* Sort Order By는 데이터를 정렬할 때 나타난다.
+```oracle
+select * from emp order by sal desc 
+```
+
+#### Sort Group By
+* Sort Group By는 소팅 알고리즘을 이용해 그룹별 집계를 수행할 때 나타난다.
+```oracle
+select deptno, sum(sal), max(sal), min(sal), avg(sal)
+from emp
+group by deptno
+order by deptno
+```
+* 즉, 위 예시에서 `deptno`별로 작업할 공간을 만들고, 그 공간을 `deptno` 순으로 만든다.
+
+> 그룹핑 결과의 정렬 순서
+> * Sort Group By는 정렬이 보장된다고 믿는 경우가 있는데 그렇지 않다.
+> * 실제로는 소팅 알고리즘을 사용해 값을 집계한다는 뜻일 뿐이고, 결과의 정렬을 의미하진 않는다.
+> * Order By 절이 없으면 오라클 입장에선 반드시 정렬된 순서로 출력할 의무가 없다.
+> * 따라서 실행계획에 Sort Group By라고 표시되더라도, 만드시 Order By를 명시해야 한다.
+
+#### Hash Group By
+* 오라클 10gR2 버전에서 도입되었으며, Group By 절 뒤에 Order By 절을 명시하지 않으면 대부분 Hash Group By방식으로 처리한다.
+```oracle
+select deptno, sum(sal), max(sal), min(sal), avg(sal)
+from emp
+group by deptno
+```
+* Sort Group By에서는 해당 그룹별 공간을 위해 소트 알고리즘을 사용했다면, Hash Group By는 해싱 알고리즘을 사용한다.
+
+#### Sort Unique
+* Unnesting된 서브쿼리가 M쪽 집합이면(혹은 1쪽집합이더라도 조인 컬럼에 Unique 인덱스가 없으면) 메인 쿼리와 조인하기 전 중복 레코드부터 제거해야 하는데, 이럴 때 Sort Unique 오퍼레이션이 나타난다.
+  * 만약 PK/Unique 제약 또는 Unique 인덱스를 통해 Unnesting된 서브쿼리의 유일성이 보장된다면, Sort Unique 오퍼레이션은 생략된다.
+* Union, Minus, Intersect 같은 집합(Set) 연산자를 사용할 때도 Sort Unique 오퍼레이션이 나타난다.
+* Distinct 연산자를 사용해도 Sort Unique 오퍼레이션이 나타난다.
+  * 오라클 10gR2부터는 Distinct 연산에도 Hash Unique 방식을 사용하는데, Order By를 생략할 때 그렇다.
+
+#### Sort Join
+* Sort Join 오퍼레이션은 소트 머지 조인을 수행할 때 나타난다.
+
+#### Window Sort
+* Window Sort는 윈도우 함수(분석함수)를 수행할 때 나타난다.
+```oracle
+select empno, ename, job, mgr, sal
+     , avg(sal) over (partition by deptno)
+from emp
+```
+
+## 소트가 발생하지 않도록 SQL 작성
+* Union, Minus, Distinct 연산자는 중복 레코드를 제거하기 위한 소트 연산을 발생시키기 때문에 곡 필요한 경우에만 사용해야 한다.
+
+### Union vs Union All
+* Union을 사용하면 옵티마이저는 상단과 하단 두 집합 간 중복을 제거하려고 소트 작업을 수행한다.
+* 하지만 Union All은 중복을 확인하지 않고 두 집합을 단순히 결합하기 때문에 소트 작업을 수행하지 않는다.
+* 따라서 될 수 있으면 Union All을 사용해야 한다.
+* 하지만 자칫 결과 집합이 달라질 수 있기 때문에 Union All로 무작정 변경하면 안된다.
+  * 데이터 모델에 대한 이해와 집합적 사고가 필요하다.
+  * 그렇지 않으면 알 수 없는 데이터 중복, 혹시 모를 데이터 중복을 우려해 중복 제거용 연산자를 불필요하게 자주 사용하게 될 수 있다.
+
+### Exists 활용
+* 중복 레코드를 제거할 목적으로 Distinct 연산자를 종종 사용하는데, 이 연산자를 사용하면 조건에 해당하는 데이터를 모두 읽어서 중복을 제거해야 한다.
+  * 부분범위 처리는 당연히 불가능하고, 모든 데이터를 읽는 과정에 많은 I/O가 발생한다.
+```oracle
+select DISTINCT p.상품번호, p.상품명, ...
+from 상품p, 계약 c
+where p.상품유형코드 = :pclscd
+  and c.상품번호 = p.상품번호
+  and c.계약일자 between :dt1 and :dt2
+  and c.계약구분코드 = :ctpcd
+```
+* Exists를 사용하면 이러한 문제를 해결할 수 있다.
+```oracle
+select p.상품번호, p.상품명, ...
+from 상품 p
+where EXISTS(select 'x' from 계약 c
+             where c.상품번호 = p.상품번호
+               and c.계약일자 between :dt1 and :dt2
+               and c.계약구분코드 = :ctpcd)
+```
+* 위 예시를 보면 Exists 서브쿼리를 통해 데이터 존재여부만 확인하면 되기 때문에 만족하는 데이터를 모두 읽지 않는다.
+* 이와 같이 Distinct, Minus 연산자를 사용한 쿼리는 대부분 Exists 서브쿼리로 변환 가능하다.
+
+### 조인 방식 변경
+* 조인문일 때는 조인 방식도 잘 선택해줘야 한다.
+```oracle
+select c.계약번호, c.상품코드, p.상품명, p.상품구분코드, c.계약일시, c.계약금액
+from 계약 c, 상품 p
+where c.지점ID = :brch_id
+  and p.상품코드 = c.상품코드
+order by c.계약일시 desc
+```
+```
+0    SELECT STATEMENT Optimizer=ALL_ROWS
+1  0   SORT (ORDER BY)
+2  1     HASH JOIN
+3  2       TABLE ACCESS (FULL) OF '상품' (TABLE)
+4  2       TABLE ACCESS (BY INDEX ROWID) OF '계약' (TABLE)
+5  4         INDEX (RAGE SCAN) OF '계약_X01' (INDEX)
+```
+* 위 예시는 `계약_X01` 인덱스가 `지점ID + 계약일시` 순이면 소트 연산을 생략할 수 있지만, 해시 조인이기 때문에 Sort Order By가 나타난 예시이다.
+* 즉 이러한 상황에서는, 아래와 같이 NL조인하도록 조인방식을 변경하면 소트 연산을 생략할 수 있으며, `지점ID` 조건을 만족하는 데이터가 많고 부분범위 처리 가능한 상황에서 큰 성능 개선 효과를 얻을 수 있다.
+```oracle
+select /*+ leading(c) use_nl(p)*/
+       c.계약번호, c.상품코드, p.상품명, p.상품구분코드, c.계약일시, c.계약금액
+from 계약 c, 상품 p
+where c.지점ID = :brch_id
+  and p.상품코드 = c.상품코드
+order by c.계약일시 desc
+```
+```
+0    SELECT STATEMENT Optimizer=ALL_ROWS
+1  0   NESTED LOOPS
+2  1     NESTED LOOPS
+3  2       TABLE ACCESS (BY INDEX ROWID) OF '계약' (TABLE)
+4  3         INDEX (RAGE SCAN DESCENDING) OF '계약_X01' (INDEX)
+5  2       INDEX (UNIQUE SCAN) OF '상품_PK' (INDEX (UNIQUE))
+6  1     TABLE ACCESS (BY INDEX ROWID) OF '상품' (TABLE)
+```
+
+## 인덱스를 이용한 소트 연산 생략
+* 인덱스의 정렬된 상태를 이용하면 Order By 또는 Group By 절이 있어도 소트 연산을 생략할 수 있다.
+* 여기에 Top N 쿼리 특성을 결합하면 OLTP 시스템에서 대량 데이터를 조회할 때 매우 빠른 응답 속도를 낼 수 있다.
+
+### Sort Order By 생략
+```oracle
+select 거래일시, 체결건수, 체결수량, 거래대금
+from 종목거래
+where 종목코드 = 'KR123456'
+order by 거래일시
+```
+* 위 예시에서, 인덱스 선두 컬럼을 `종목코드 + 거래일시` 순으로 구성하면 소트 연산을 생략할 수 있다.
+  * 즉, 실행계획에서 Sort Order By 오퍼레이션이 생략된다.
+* 또한 소트 연산을 생략함으로써, 전체 레코드를 읽지 않고도 바로 결과집합 출력을 시작할 수 있게 된다.
+  * 즉, 부분범위 처리 가능한 상태가 되었다.
+
+> 부분범위 처리 아직도 유효한가?
+> * 요즘 DB 애플리케이션은 대부분 3-Tier 환경에서 작동하므로 부분범위 처리는 의미 없다고 생각할 수 있다.
+> * 단위 작업을 마치면 DB 커넥션을 바로 커넥션 풀에 반환해야 하므로, 그 전에 쿼리 조회 결과를 클라이언트에게 모두 전송하고 커서를 닫아야만 하기 때문이다.
+> * 하지만 부분범위 처리 원리는 이러한 3-Tier 환경에서도 여전히 유효한데, 바로 Top N 쿼리 때문이다.
+
+### Top N 쿼리
+* Top N 쿼리는 전체 결과집합 중 상위 N개 레코드만 선택하는 쿼리이다.
+* SQL Server나 Sybase는 Top N 쿼리를`TOP 10`과 같이, IBM DB2는 `FETCH FIRST 10 ROWS ONLY`와 같이, 오라클은 인라인 뷰로 한번 감싸고 `where rownum <= 10`과 같이 사용할 수 있다.
+```oracle
+select * from (
+    select 거래일시, 체결건수, 체결수량, 거래대금
+    from 종목거래
+    where 종목코드 = 'KR123456'
+      and 거래일시 >= '20180304'
+    order by 거래일시
+)
+where rownum <= 10
+```
+* 여기에 소트 연산을 생략할 수 있는 인덱스(위 예시에선, `종목코드 + 거래일시`)를 사용하면, 옵티마이저는 소트 연산을 생략하고 인덱스를 스캔하다 10개의 레코드를 읽는 순간 바로 멈춘다.
+```
+0    SELECT STATEMENT Optimizer=ALL_ROWS
+1  0   COUNT (STOPKEY)
+2  1     VIEW
+3  2       TABLE ACCESS (BY INDEX ROWID) OF '종목거래' (TABLE)
+4  3         INDEX (RANGE SCAN) OF '종목거래_PK' (INDEX (UNIQUE))
+```
+* 위 실행계획을 보면, Sort Order By 오퍼레이션은 보이지 않고 `COUNT(STOPKEY)`가 보인다.
+* 이것은 조건절에 부합하는 레코드가 많아도 그 중 `ROWNUM`으로 지정한 건수만큼 결과 레코드를 얻고 거기서 멈춘다는 뜻이다.
+* 이러한 기능을 TOP N Stopkey 알고리즘이라 한다.
+
+#### 페이징 처리
+* 이러한 방식을 이용해 3-Tier 환경에서 페이징 처리를 할 수 있다.
+```oracle
+select *
+from (
+    select rownum no, a.*
+    from
+        (
+         /* SQL Body */
+        ) a
+    where rownum <= (:page * 10)
+)
+where no >= (:page-1)*10 + 1
+```
+* 3-Tier 환경에서 부분범위 처리를 활용하기 위해 해야할 일은 다음과 같다.
+  * 부분범위 처리 가능하도록 SQL을 작성하고, 부분범위 처리가 잘 작동하는지 쿼리 툴에서 테스트한다.
+  * 작성한 SQL 문을 페이징 처리용 표준 패턴 SQL Body에 붙여넣는다.
+* 부분범위 처리가 가능하도록 SQL을 작성한다는 것은 아래와 같은 것을 의미한다.
+  * 인덱스를 사용 가능하도록 조건절을 구사한다.
+  * 조인은 NL 조인 위주로 처리한다. (룩업을 위한 작은 테이블은 해시조인 Build Input으로 처리해도 됨)
+  * Order By 절이 있어도 소트 연산을 생략할 수 있도록 인덱스를 구성한다.
+
+#### 페이징 처리 ANTI 패턴
+```oracle
+select *
+from (
+    select rownum no, a.*
+    from
+        (
+         /* SQL Body */
+        ) a
+)
+where no between (:page-1)*10 + 1 and (:page * 10)
+```
+* 간혹 간결하게 표현하고 싶어서 `ROWNUM` 조건 없이 위와같은 식으로 페이징 처리를 하곤 한다.
+* 하지만 `ROWNUM` 조건이 없어지면 Top N Stopkey 알고리즘이 동작하지 않아, 실행계획 상에서도 `COUNT` 옆에 `(STOPKEY)`가 없을 것이다.
+  * 즉 이런 경우에 SQL 툴에서 해당 쿼리를 확인해보면, 첫 번째 페이지는 금방 출력되긴 하지만 하드디스크가 계속 돌아가는 것을 확인할 수 있다. 
