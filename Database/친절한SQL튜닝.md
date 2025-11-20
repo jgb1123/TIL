@@ -2061,3 +2061,275 @@ where no between (:page-1)*10 + 1 and (:page * 10)
 * 간혹 간결하게 표현하고 싶어서 `ROWNUM` 조건 없이 위와같은 식으로 페이징 처리를 하곤 한다.
 * 하지만 `ROWNUM` 조건이 없어지면 Top N Stopkey 알고리즘이 동작하지 않아, 실행계획 상에서도 `COUNT` 옆에 `(STOPKEY)`가 없을 것이다.
   * 즉 이런 경우에 SQL 툴에서 해당 쿼리를 확인해보면, 첫 번째 페이지는 금방 출력되긴 하지만 하드디스크가 계속 돌아가는 것을 확인할 수 있다. 
+
+### 최솟값/최댓값 구하기
+* 최솟값 또는 최댓값을 구하는 SQL 실행계획을 보면, 아래와 같이 Sort Aggregate 오퍼레이션이 나타난다.
+* Sort Aggregate를 위해 전체 데이터를 정렬하진 않지만, 전체 데이터를 읽으면서 값을 비교한다.
+* 인덱스는 정렬되어 있으므로, 이를 이용하면 전체 데이터를 읽지 않고도 최솟값 최댓값을 쉽게 찾을 수 있다.
+
+#### 인덱스 이용해 최소/최대값을 구하기 위한 조건
+* 데이터를 읽지 않고 인덱스를 이용해 최솟값 또는 최댓값을 구하려면 조건절 컬럼과 MIN/MAX 함수인자 컬럼이 모두 인덱스에 포함되어 있어야 한다.
+  * 즉 테이블 액세스가 발생하지 않아야 한다.
+* 위와같은 조건에 만족한 경우 아래와 같은 실행계획을 볼 수 있다.
+* `FIRST ROW`는 조건을 만족하는 레코드 하나를 찾았을 때 바로 멈춘다는 것을 의미하며, 이것을 First Row Stopkey 알고리즘이라고 한다.
+
+* 인덱스 구성에 따른 실행계획의 차이
+  1) ```oracle
+     -- 인덱스 : DEPTNO + MGR + SAL
+     SELECT MAX(SAL) FROM EMP WHERE DEPTNO = 30 AND MGR = 7698;
+     ```
+     ```
+     0    SELECT STATEMENT Optimizer=ALL_ROWS (Cost=1 Card=1 Bytes=8)
+     1  0  SORT (AGGREGATE) (Card=1 Bytes=8)
+     2  1    FIRST ROW (Cost=1 Card=1 Bytes=8)
+     3  2      INDEX(RANGE SCAN (MIN/MAX)) OF 'EMP_X1' (INDEX) (Cost=1 Card=1 ...)
+     ```
+     * `DEPTNO`, `MGR`을 만족하는 가장 큰 레코드를 하나 읽으면 끝
+  2) ```oracle
+     -- 인덱스 : DEPTNO + SAL + MGR
+     SELECT MAX(SAL) FROM EMP WHERE DEPTNO = 30 AND MGR = 7698;
+     ```
+     ```
+     0    SELECT STATEMENT Optimizer=ALL_ROWS (Cost=1 Card=1 Bytes=8)
+     1  0  SORT (AGGREGATE) (Card=1 Bytes=8)
+     2  1    FIRST ROW (Cost=1 Card=1 Bytes=8)
+     3  2      INDEX(RANGE SCAN (MIN/MAX)) OF 'EMP_X1' (INDEX) (Cost=1 Card=1 ...)
+     ```
+     * `DEPTNO`를 만족하는 가장큰 `SAL`값부터 내려오면서, `MGR = 7698`을 만족하는 레코드를 찾으면 끝 
+  3) ```oracle
+     -- 인덱스 : SAL  + DEPTNO + MGR
+     SELECT MAX(SAL) FROM EMP WHERE DEPTNO = 30 AND MGR = 7698;
+     ```
+     ```
+     0    SELECT STATEMENT Optimizer=ALL_ROWS (Cost=1 Card=1 Bytes=8)
+     1  0  SORT (AGGREGATE) (Card=1 Bytes=8)
+     2  1    FIRST ROW (Cost=1 Card=1 Bytes=8)
+     3  2      INDEX(FULL SCAN (MIN/MAX)) OF 'EMP_X1' (INDEX) (Cost=1 Card=1 ...)
+     ```
+     * 인덱스 전체에서 가장 큰 `SAL`값부터 내려오면서, `DEPTNO = 30`, `MGR = 7698` 조건을 만족하는 레코드를 찾으면 끝
+     * Index Range Scan은 불가능하다.
+  4) ```oracle
+     -- 인덱스 : DEPTNO + SAL
+     SELECT MAX(SAL) FROM EMP WHERE DEPTNO = 30 AND MGR = 7698;
+     ```
+     ```
+     0    SELECT STATEMENT Optimizer=ALL_ROWS (Cost=1 Card=1 Bytes=8)
+     1  0  SORT (AGGREGATE) (Card=1 Bytes=8)
+     2  1    TABLE ACCESS (BY INDEX ROWID) OF 'EMP' (TABLE) (Cost=2 Card=1 Bytes=8)
+     3  2      INDEX(RANGE SCAN) OF 'EMP_X1' (INDEX) (Cost=1 Card=5)
+     ```
+     * `DEPTNO = 30` 조건을 만족하는 전체 레코드를 읽어 `MGR = 7698`을 필터링한 후 `MAX(SAL)`값을 구한다.
+
+### Top N 쿼리를 이용해 최솟값/최댓값 구하기  
+```oracle
+-- 인덱스 : DEPTNO + SAL
+SELECT *
+FROM (
+    SELECT sal
+    FROM emp
+    WHERE DEPTNO = 30
+      AND MGR = 7698
+    ORDER BY SAL DESC
+)
+WHERE ROWNUM <= 1;
+```
+```
+0    SELECT STATEMENT Optimizer=ALL_ROWS (Cost=2 Card=1 Bytes=13)
+1  0   COUNT (STOPKEY)
+2  1     VIEW (Cost=2 Card=1 Bytes=13)
+3  2       TABLE ACCESS (BY INDEX ROWID) OF 'EMP' (TABLE) (Cost=2 Card=1 ...)
+4  3         INDEX (RANGE SCAN DESCENDING) OF 'EMP_X1' (INDEX) (Cost=1 Card=5)  
+```
+* 위 예시는 Top N 쿼리를 이용해 최댓값을 구하는 방법이다.
+* `DEPTNO = 30` 조건을 만족하는 가장 오른쪽부터 역순으로 스캔하면서 테이블 액세스를 하다가, `MGR = 7698` 조건을 만족하는 레코드 하나를 찾았을 때 멈추면 된다.
+* 인라인 뷰를 사용하기 때문에 더 복잡하긴 하지만, 성능 측면에서는 더 좋다.
+
+### 이력 조회
+* 값이 어떻게 변경되어 왔는지 과거 이력을 조회할 필요가 있다면, 이력 테이블을 따로 관리해야 한다.
+* 일반적으로는 이 이력 테이블에는 현재 데이터도 저장하는데, 변경 이력을 완벽히 재생할 수 있기 때문이다.
+  * 예시로, 특정 컬럼이 특정 값으로 바뀐 날짜를 일고 싶다면 이력 테이블에서 확인해야 한다.
+
+
+#### 가장 단순한 이력 조회
+* 이력 데이터를 조회할 때, First Row Stopkey, Top N Stopkey 알고리즘이 동작할 수 있도록 인덱스 설계 및 SQL을 구현하는 일은 중요하다.
+* 아래 예시는 상태코드가 현재 값으로 변경된 날짜를 상태변경이력 테이블을 통해 조회하는 방법이다.
+```oracle
+-- 상태변경이력 PK인덱스 : 장비번호 + 변경일자 + 변경순번 
+SELECT 장비번호, 장비명, 상태코드
+     , (SELECT MAX(변경일자)
+        FROM 상태변경이력
+        WHERE 장비번호 = P.장비번호) 최종변경일자
+FROM 장비 P
+WHERE 장비구분코드 = 'A001'
+```
+* 인덱스가 `장비번호 + 변경일자 + 변경순번` 순으로 구성되어 있었기 때문에 First Row Stopkey 알고리즘이 작동할 수 있다.
+
+#### 좀 더 복잡한 이력 조회
+* 위 예시에서 최종 변경 순번까지 읽어야 하는 상황이라면, 쿼리가 좀 더 복잡해진다.
+```oracle
+-- 상태변경이력 PK인덱스 : 장비번호 + 변경일자 + 변경순번
+SELECT 장비번호, 장비명, 상태코드
+     , SUBSTR(최종이력, 1, 8) 최종변경일자
+     , TO_NUMBER(SUBSTR(최종이력 9, 4)) 최종변경순번
+FROM (
+    SELECT 장비번호, 장비명, 상태코드
+         , (SELECT MAX(H.변경일자 || LPAD(H.변경순번, 4))
+            FROM 상태변경이력 H
+            WHERE 장비번호 = P.장비번호) 최종이력
+    FROM 장비 P
+    WHERE 장비구분코드 = 'A001'
+) 
+```
+* 위와같이 쿼리를 작성하면, 인덱스 컬럼을 가공했기 때문에 First Row Stopkey 알고리즘이 작동하지 않는다.
+* 즉, 장비별 상태변경이력이 많지 않을 경우엔 문제가 안될 순 있지만, 많으면 문제가 된다.
+```oracle
+-- 상태변경이력 PK인덱스 : 장비번호 + 변경일자 + 변경순번
+SELECT 장비번호, 장비명, 상태코드
+     , (SELECT MAX(H.변경일자)
+        FROM 상태변경이력 H
+        WHERE 장비번호 = P.장비번호) 최종변경일자
+     , (SELECT MAX(H.변경순번)
+        FROM 상태변경이력 H
+        WHERE 장비번호 = P.장비번호
+          AND 변경일자 = (SELECT MAX(H.변경일자)
+                         FROM 상태변경이력 H
+                         WHERE 장비번호 = P.장비번호)) 최종변경순번
+FROM 장비 P
+WHERE 장비구분코드 = 'A001'
+```
+* 장비별 상태변경이력이 많은 경우, 오히려 위와같이 쿼리를 작성하는게 좋다.
+* 상태변경이력을 세 번 조회하는 비효율은 있지만, First Row Stopkey 알고리즘이 잘 작동하므로 성능은 비교적 좋다.
+* 이력테이블에서 읽어야 할 컬럼이 더 많다면 쿼리는 점점 더 복잡해진다.
+```oracle
+-- 상태변경이력 PK인덱스 : 장비번호 + 변경일자 + 변경순번
+SELECT 장비번호, 장비명, 상태코드
+     , (SELECT MAX(H.변경일자)
+        FROM 상태변경이력 H
+        WHERE 장비번호 = P.장비번호) 최종변경일자
+     , (SELECT MAX(H1.변경순번)
+        FROM 상태변경이력 H1
+        WHERE 장비번호 = P.장비번호
+          AND 변경일자 = (SELECT MAX(H2.변경일자)
+                         FROM 상태변경이력 H2
+                         WHERE 장비번호 = P.장비번호)) 최종변경순번
+     , (SELECT H1.상태코드
+        FROM 상태변경이력 H1
+        WHERE 장비번호 = P.장비번호
+          AND 변경일자 = (SELECT MAX(H2.변경일자)
+                         FROM 상태변경이력 H2
+                         WHERE 장비번호=P.장비번호)
+          AND 변경순번 = (SELECT MAX(H3.변경순번)
+                         FROM 상태변경이력 H3
+                         WHERE 장비번호 = P.장비번호
+                           AND 변경일자 = (SELECT MAX(H4.변경일자)
+                                          FROM 상태변경이력 H4
+                                          WHERE 장비번호 = P.장비번호))) 최종상태코드
+FROM 장비 P
+WHERE 장비구분코드 = 'A001'
+```
+
+
+#### INDEX_DESC 힌트 활용
+* 단순하게 쿼리를 작성하면서도 성능을 높이기 위해, Top N + 인덱스 힌트를 사용하는 방법이 있다.
+```oracle
+-- 상태변경이력 PK인덱스 : 장비번호 + 변경일자 + 변경순번
+SELECT 장비번호, 장비명
+     , SUBSTR(최종이력, 1, 8) 최종변경일자
+     , TO_NUMBER(SUBSTR(최종이력 9, 4)) 최종변경순번
+     , SUBSTR(최종이력, 13) 최종상태코드
+FROM (
+    SELECT 장비번호, 장비명
+         , (SELECT /*+ INDEX_DESC(X 상태변경이력_PK) */ 
+                   변경일자 || LPAD(변경순번, 4) || 상태코드
+            FROM 상태변경이력 X
+            WHERE 장비번호 = P.장비번호
+              AND ROWNUM <= 1) 최종이력
+    FROM 장비 P
+    WHERE 장비구분코드 = 'A001'
+) 
+```
+* 이 방식은 성능은 좋긴 한데, 인덱스 구성이 완벽해야만 쿼리가 잘 작동한다.
+* 다른 대안이 있다면 그 방법을 사용하는게 좋다.
+
+#### 11g/ 12c 신기능 활용
+* 바로 이전 예시는 11g 이하 버전에서 실행해보면 ORA-00904 오류가 발생한다.
+* 메인쿼리 컬럼을 서브쿼리 내 인라인 뷰에서 참조했기 때문이다.
+* 이럴경우 아래와 같이 해결하면 된다.
+
+  ```oracle
+  -- 상태변경이력 PK인덱스 : 장비번호 + 변경일자 + 변경순번
+  SELECT 장비번호, 장비명
+       , SUBSTR(최종이력, 1, 8) 최종변경일자
+       , TO_NUMBER(SUBSTR(최종이력 9, 4)) 최종변경순번
+       , SUBSTR(최종이력, 13) 최종상태코드
+  FROM (
+      SELECT 장비번호, 장비명
+           , (SELECT 변경일자 || LPAD(X.변경순번, 4) || 상태코드
+              FROM (SELECT 장비번호, 변경일자, 변경순번, 상태코드
+                    FROM 상태변경이력
+                    ORDER BY 변경일자 DESC, 변경순번 DESC)
+              WHERE 장비번호 = P.장비번호
+                AND ROWNUM <= 1) 최종이력
+      FROM 장비 P
+      WHERE 장비구분코드 = 'A001'
+  ) 
+  ```
+  * Predicate Pushing이라는 쿼리변환이 작동하여 장비번호 조건이 인라인 뷰 안쪽으로 파고들어가게 된다.
+* 12c에서 부터는 파싱 오류 없이 Top N Stopkey 알고리즘이 잘 작동한다.
+
+#### 상황에 따라 달라져야 하는 이력 조회 패턴
+* 위 예시들과 달리, 전체 장비의 이력을 대상으로 조회할 때는 인덱스를 활용한 Stopkey 기능 작동여부가 튜닝의 핵심요소는 아니다.
+  * 인덱스를 활용한 패턴은 랜덤 I/O 발생량만큼 성능도 비례해서 느려지므로, 대량데이터 조회 시 좋은 솔루션은 되지 못한다.
+* 이런 경우엔 아래와 같이 윈도우 함수를 이용하는 것이 효과적이다.
+```oracle
+SELECT *
+FROM 장비 P
+   , (SELECT 장비번호, 변경일자, 변경순번, 상태코드
+           , ROW_NUMBER() OVER (PARTITION BY 장비번호
+                                ORDER BY 변경일자 DESC, 변경순번 DESC) RNUM
+      FROM 상태변경이력) H
+WHERE H.장비번호 = P.장비번호
+  AND H.RNUM = 1;
+```
+* 위 예시는, Full Scan과 해시 조인을 이용하기 때문에 오랜 과거 이력까지 모두 읽지만, 인덱스를 이용하는 방식보다 빠르다.
+* 아래와 같이 KEEP 절을 활용할 수도 있다.
+```oracle
+SELECT P.장비번호, P.장비명
+     , H.변경일자 AS 최종변경일자
+     , H.변경순번 AS 최종변경순번
+     , H.상태코드 AS 최종상태코드
+FROM 장비 P
+   , (SELECT 장비번호
+           , MAX(변경일자) 변경일자
+           , MAX(변경순번) KEEP (DENSE_RANK LAST ORDER BY 변경일자, 변경순번) 변경순번
+           , MAX(상태코드) KEEP (DENSE_RANK LAST ORDER BY 변경일자, 변경순번) 상태코드
+      FROM 상태변경이력
+      GROUP BY 장비번호) H
+WHERE H.장비번호 = P.장비번호
+```
+
+#### 선분이력
+* 선분(라인 세그먼트)이력 모델을 사용하면 아래와 같이 간단한 쿼리료 이력을 쉽게 조회할 수 있다.
+```oracle
+SELECT P.장비번호, P.장비명
+     , H.상태코드, H.유효시작일자, H.유효종료일자, H.변경일자
+FROM 장비 P, 상태변경이력 H
+WHERE P.장비구분코드 = 'A001'
+  AND H.장비번호 = P.장비번호
+  AND H.유효종료일자 = '99991231'
+```
+
+### Sort Group By 생략
+* 인덱스를 이용해 소트 연산을 생략할 수 있는데, 그루핑 연산에도 인덱스를 활용할 수 있다.
+* 실행계획에 Sort Gorup By Nosort 가 있다.
+```oracle
+select region, avg(age), count(*)
+from customer
+group by region
+```
+```
+0  SELECT STATEMENT Optimizer=ALL_ROWS (Cost=30142 ...)
+1  0  SORT GROUP BY NOSORT (Cost=30142 ...)
+2  1    TABLE ACCESS (BY INDEX ROWID) OF 'CUSTOMER' (TABLE) (Cost=30142 ...)
+3  2      INDEX (FULL SCAN) OF 'CUSTOMER_X01' (INDEX) (Cost=2337 ...)
+```
