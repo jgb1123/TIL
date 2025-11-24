@@ -2557,3 +2557,438 @@ where no >= (:page-1)*10 + 1
      * 따라서 커밋은 생각보다 느리다.
    * 너무 오랫동안 커밋하지 않은 채 데이터를 계속 갱신하면 Undo 공간이 부족해져 시스템 장애 상황을 유발할 수 있다.
    * 루프를 돌면서 너무 자주 커밋을 하면 프로그램 자체 성능이 매우 느려진다.
+
+### 데이터베이스 Call과 성능
+* SQL 트레이스 Call 통계를 보면 알 수 있듯이, SQL은 아래 세 단계로 나누어 실행된다.
+  * Parse Call : SQL 파싱과 최적화를 수행하는 단계다. SQL과 실행계획을 라이브러리 캐시에서 찾으면, 최적화 단계는 생략할 수 있다.
+  * Execute Call : SQL을 실행하는 단계다. DML은 이 단계에서 모든 과정이 끝나지만, SELECT 문은 Fetch 단계를 거친다.
+  * Fetch Call : 데이터를 읽어서 사용자에게 결과집합을 전송하는 과정으로 SELECT 문에서만 나타난다. 전송할 데이터가 많을 때는 Fetch Call이 여러 번 발생한다.
+* Call이 어디서 발생하느냐에 따라 User Call과 Recursive Call로 나눌 수 있다.
+  * User Call : 네트워크를 경유해 DBMS 외부로부터 인입되는 Call이다. 3-Tier 아키텍처에서 User Call은 WAS 서버에서 발생하는 Call이다.
+  * Recursive Call : DBMS 내부에서 발생하는 Call이다. SQL 파싱과 최적화 과정에서 발생하는 데이터 딕셔너리 조회, PL/SQL로 작성한 사용자 정의 함수/프로시저/트리거에 내장된 SQL을 실행할 때 발생하는 Call이다.
+* User Call이든 Recursive Call이든 SQL을 실행할 때마다 Parse, Execute, Fetch Call 단계를 거친다.
+* 데이터베이스 Call이 많으면 성능은 느릴 수밖에 없고, 특히 네트워크를 경유하는 User Call이 성능에 미치는 영향은 매우 크다.
+
+#### 절차적 루프 처리
+* 데이터베이스 Call이 성능에 미치는 영향에 대한 테스트 결과이다.
+* PL/SQL 프로그램상에서 source 테이블을 읽어 100만번 루프를 돌며 건건이 target 테이블에 입력하는 예시가 있다.
+* 루프를 돌면서 건건이 Call이 발생했지만, 네트워크를 경유하지 않는 Recursive Call이기 때문에 29초 정도만에 수행을 마쳤다.
+* 같은 로직을 JAVA 프로그램으로 수행하면 네트워크를 경유하는 User Call이므로, 성능히 급격히 나빠지는데 약 218초 정도 걸렸다.
+
+#### One SQL의 중요성
+* 위 예시를 아래와 같이 Insert Into Select 구문으로 처리할 수 있다.
+```oracle
+insert into target
+select * from source;
+```
+* 즉, 단 한번의 Call로 처리하니 1.46초만에 수행을 마쳤다.
+* 따라서, 업무로직이 복잡하지 않다면 가급적 One SQL로 구현해야 성능이 잘 나온다.
+  * Insert Into Select
+  * 수정가능 조인 뷰
+  * Merge 문
+
+### Array Processing 활용
+* 실무에서 복잡한 절차적 프로그램을 One SQL로 구현하는 일은 절대로 쉽지 않다.
+* 이럴 때 Array Processing 기능을 활용하면 One SQL로 구현하지 않고도 Call 부하를 획기적으로 줄일 수 있다.
+
+```oracle
+declare 
+  cursor c is select * from source;
+  type typ_source is table of c%rowtype;
+  l_source typ_source;
+    
+  l_array_size number default 10000;
+
+  procedure insert_target(p_source in typ_source) is
+  begin
+    forall i in p_source.first..p_source.last
+      insert into target values p_source(i);
+  end insert_target;
+
+begin
+  open c;
+  loop 
+    fetch c bulk collect into l_source limit l_array_size;
+    
+    insert_target(l_source);
+    
+    exit when c%notfound;
+  end loop;
+  
+  close c;
+  
+  commit;
+end;
+```
+* JAVA에서도 `addBatch()`와 `executeBatch()`를 활용해 insert할 값들을 배열에 저장 후, 한번에 insert 하도록 작성할 수 있다.
+* 즉, 100만번 발생하던 Call을 많이 줄여서 생기는 성능 향상으로, PL/SQL에서는 29초 -> 4초, JAVA에서는 218초 -> 12초로 많은 성능향상이 나타난다.
+
+### 인덱스 및 제약 해제를 통한 대량 DML 튜닝
+* 인덱스와 무결성 제약조건은 DML 성능에 큰 영향을 끼친다.
+* 그렇다고 OLTP 시스템에서 이러한 기능을 섣불리 해제할 순 없다.
+* 하지만 동시 트랜잭션 없이 대량 데이터를 적재하는 배치 프로그램에서는, 이 기능을 해제함으로 써 큰 성능개선 효과를 얻을 수 있다.
+
+#### PK 제약과 인덱스 해제 1 - PK 제약에 Unique 인덱스를 사용한 경우
+* PK제약을 비활성화 하면서 인덱스도 Drop한다.
+  ```oracle
+  alter table target modify target_pk disable drop index;
+  ```
+* 일반 인덱스는 Unusable 상태로 변경한다.
+  ```oracle
+  alert index T2_x1 unusable;
+  ```
+  * 인덱스가 Unusable인 상태에서 데이터를 입력하려면 skip_unusable_indexes 파라미터를 true로 설정해야 한다.
+    ```oracle
+    alter session set skip_unusable_indexes = true;
+    ```
+* 작업이 완료되면 PK 제약을 활성화하고, 일반 인덱스를 재생성한다.
+  ```oracle
+  alter table target modify constraint target_pk enable NOVALIDATE;
+  alter index target_x1 rebuild;
+  ```
+* 이렇게 하면 데이터 입력 시간과 제약 활성화 및 인덱스 재생성 시간을 합쳐도 더 빠르게 작업을 마칠 수 있다.
+* 즉, 인덱스 및 무결성 제약이 DML 성능에 미치는 영향은 아주 크다.
+
+#### PK 제약과 인덱스 해제 2 - PK 제약에 Non-Unique 인덱스를 사용한 경우
+* PK 인덱스를 Drop하지 않고 Unusable 상태에서 데이터를 입력하고 싶다면, PK 제약에 Non-Unique 인덱스를 사용하면 된다.
+  ```oracle
+  altert table target drop primary key drop index;
+  
+  create index target_pk on target(no, empno); -- Non-Unique 인덱스 생성
+  
+  alter table target add constraint target_pk primary key(no, empno) using index target_pk; -- PK 제약에 Non-Unique 인덱스 사용하도록 지정
+  ```
+* 그 후 아래와 같이 PK 제약을 비활성화하고 인덱스를 Unusable 상태로 변경후 작업하면 된다.
+  ```oracle
+  altet table target modify constraint target_pk disable keep index;
+  
+  alter index target_pk unusable;
+  
+  alter index target_x1 unusable;
+  ```
+* 작업이 종료되면 인덱스를 재생성하고 PK 제약을 다시 활성화한다.
+  ```oracle
+  alter index target_x1 rebuild;
+  
+  alter index target_pk rebuild;
+  
+  alter table target modify constraint target_pk enable novalidate;
+  ```
+
+### 수정가능 조인 뷰
+#### 전통적인 방식의 UPDATE
+```oracle
+update 고객 c
+set (최종거래일시, 최근거래횟수, 최근거래금액) = 
+    (select max(거래일시), count(*), sum(거래금액)
+     from 거래
+     where 고객번호 = c.고객번호
+       and 거래일시 >= trunc(add_months(sysdate, -1)))
+where exists (select 'x' from 거래
+              where 고객번호 = c.고객번호
+                and 거래일시 >= trunc(add_months(sysdate, -1)))
+```
+* 각 컬럼을 건건이 서브쿼리를 이용해 set 하는 방식은 비효율적이기 때문에, 위와 같이 쿼리를 작성할 수 있다.
+* 하지만 위와같은 방법도 한달 이내 고객별 거래 데이터를 두 번 조회하기 때문에 비효율은 있다.
+  * 즉, 총 고객수와 한달 이내 거래 고객 수에 따라 성능이 좌우된다.
+* 총 고객 수가 아주 많다면 Exists 서브쿼리를 해시 세미조인으로 유도하는 것을 고려할 수 있다.
+```oracle
+where exists (select /*+ unnest hash_sj */ 'x' from 거래
+              where 고객번호 = c.고객번호
+                and 거래일시 >= trunc(add_months(sysdate, -1)))
+```
+* 한달 이내 거래를 발생시킨 고객이 많아 UPDATE 발생량이 많다면 아래와 같이 변경하는 것을 고려할 수 있다.
+```oracle
+update 고객 c
+set (최종거래일시, 최근거래횟수, 최근거래금액) = 
+    (select nvl(max(거래일시), c.최종거래일시)
+          , decode(count(*), 0, c.최근거래횟수, count(*))
+          , nvl(sum(거래금액), c.최근거래금액)
+     from 거래
+     where 고객번호 = c.고객번호
+       and 거래일시 >= trunc(add_months(sysdate, -1)))
+```
+* 하지만 모든 레코드에 LOCK이 걸리는 것은 물론, 이전과 같은 값으로 갱신되는 비중이 높을수록 Redo 로그 발생량이 증가해 오히려 비효율적일 수 있다.
+* 즉 다른 테이블과 조인이 필요한 경우 전통적인 UPDATE문을 사용하면 비효율을 완전히 없앨 순 없다.
+
+#### 수정가능 조인 뷰
+* 수정가능 조인 뷰를 활용하면 참조 테이블과 두 번 조인하는 비효율을 없앨 수 있다.
+  ```oracle
+  update
+  (select /*+ ordered use_hash no_merge(t) */
+          c.최종거래일시, c.최근거래횟수, c.최근거래금액
+        , t.거래일시, t.거래횟수, t.거래금액
+   from (select 고객번호
+              , max(거래일시) 거래일시, count(*) 거래횟수, sum(거래금액) 거래금액
+         from 거래
+         where 거래일시 >= trunc(add_months(sysdate, -1))
+         group by 고객번호) t
+       , 고객 c
+   where c.고객번호 = t.고객번호
+  )
+  set 최종거래일시 = 거래일시
+    , 최근거래횟수 = 거래횟수
+    , 최근거래금액 = 거래금액
+  ```
+  * 해당 쿼리는 12c 이상에서만 정상적으로 실행되며, 10g 이하 버전은 UPDATE 옆에 `bypass_ujvc` 힌트를 사용해야 하고, 11g에서는 실행되지 않는다. 
+* 조인 뷰는 FROM 절에 두 개 이상 테이블을 가진 뷰를 가리키며, 수정가능 조인뷰는 말 그대로 입력, 수정, 삭제가 허용되는 조인뷰를 의미한다.
+* 하지만 수정가능 조인 뷰를 사용하려면 조건이 필요하다.
+* 조인뷰에서 DML이 허용되려면, 그 테이블이 키 보존 테이블 이어야 한다.
+
+#### 키 보존 테이블이란?
+* 키 보존 테이블이란 조인된 결과집합을 통해서도 중복 값 없이 Unique하게 식별이 가능한 테이블을 의미한다.
+  * Unique한 1쪽 집합과 조인되는 테이블이어야 조인된 결과집합을 통한 식별이 가능하다.
+* 뷰에 rowid를 제공하는 테이블이라고 생각하면 된다.
+
+#### ORA-01779 오류 회피
+```oracle
+update
+(select d.deptno, d.avg_sal as d_avg_sal, e.avg_sal as e.avg_sal
+ from (select deptno, round(avg(sal), 2) avg_sal from emp group by deptno) e
+     , dept d
+ where d.deptno = e.deptno)
+set d_avg_sal = e.avg_sal
+```
+* 11g 이하 버전에서는 위 UPDATE문을 실행하면 ORA-01779 에러가 발생한다.
+  * `emp` 테이블을 `detpno` 로 group by 했기 때문에, `deptno` 컬럼으로 조인한 `dept` 테이블은 키가 보존되더라도 옵티마이저가 불필요한 제약을 가한 것이다.
+* 이럴 경우엔 10g에선 아래와 같이 `bypass_ujvc` 힌트를 이용해 제약을 회피할 수 있다.
+  ```oracle
+  update /* bypass_ujvc */
+  (select d.deptno, d.avg_sal as d_avg_sal, e.avg_sal as e.avg_sal
+  from (select deptno, round(avg(sal), 2) avg_sal from emp group by deptno) e
+  , dept d
+  where d.deptno = e.deptno)
+  set d_avg_sal = e.avg_sal
+  ```
+  * Updateable Join View Check를 생략하라고 옵티마이저에 지시하는 힌트이다.
+* 하지만 11g부터 이 힌트를 사용할 수 없게되었기 때문에 MERGE문으로 바꿔줘야 한다.
+  * `bypass_ujvc`힌트 사용이 중단되었을 뿐 수정가능 조인 뷰는 사용할 수 있다.
+  * 11g에서도 1쪽집합에 Unique 인덱스가 있으면 수정가능 조인 뷰를 이용한 UPDATE가 가능하다.
+* 12c부터는 수정가능 조인 뷰가 개선이 되었고, 위 예시가 힌트 없이도 잘 동작하게 되었다.
+
+### MERGE 문 활용
+* DW(Data Warehouse)에서 가장 흔히 발생하는 오퍼레이션은, 기간계 시스템에서 가져온 신규 트랜잭션 데이터를 반영함으로써 두 시스템 간 데이터를 동기화하는 작업이다.
+* 고객 테이블에 발생한 변경분 데이터를 DW에 반영하는 프로세스는 아래와 같다.
+  1) 전일 발생한 변경데이터를 기간계 시스템으로부터 추출(Extraction)
+  ```oracle
+  create table customer_delta
+  as
+  select * from customer
+  where mod_dt >= trunc(sysdate) - 1
+    and mod_dt < trunc(sysdate)
+  ```
+  2) CUSTOMER_DELTA 테이블을 DW 시스템으로 전송(Transportation)
+  3) DW 시스템으로 적재(Loading)
+  ```oracle
+  merge into customer t using customer_delta s on (t.cust_id = s.cust_id)
+  when matched then update
+    set t.cust_nm = s.cust_nm, t.email = s.email, ...
+  when not matched then insert
+    (cust_id, cust_nm, email, tel_no, region, addr, reg_dt) values
+    (s.cust_id, s.cust_nm, s.email, s.tel_no, s.region, s.addr, s.reg_dt);
+  ```
+* 이 중 3번 데이터 적재 작업을 효과적으로 지원하기 위해 오라클 9i에서 MERGE문이 도입되었다.
+* MERGE문은 Source 테이블 기준으로 Target 테이블과 Left Outer 방식으로 조인해 조인에 성공하면 UPDATE, 실패하면 INSERT한다.
+  * MERGE문을 UPSERT라고도 부르는 이유이다.
+
+#### Optional Clauses
+* UPDATE와 INSERT를 선택적으로 처리할 수도 있다.
+* 이 기능을 통해 수정가능 조인 뷰 기능을 대체할 수 있게 되었다.
+```oracle
+-- 수정가능 조인 뷰
+update
+(select d.deptno, d.avg_sal as d_avg_sal, e.avg_sal as e_avg_sal
+ from (select deptno, rount(avg(sal), 2) avg_sal from emp group by deptno) e
+     , dept d
+ where d.deptno = e.deptno)
+set d_avg_sal = e_avg_sal;
+
+-- Merge 문
+merge into dept d
+using (select deptno, rount(avb(sal), 2) avg_sal from emp group by deptno) e
+on (d.deptno = e.deptno)
+when matched then update set d.avg_sal = e.avg_sal;
+```
+
+#### Conditional Operations
+* ON 절에 기술한 조인문 외에 추가로 조건절을 기술할 수도 있다.
+```oracle
+merge into customer t using customer_delta s on (t.cust_id = s.cust_id)
+when matched then update
+  set t.cust_nm = s.cust_nm, t.email = s.email, ...
+  where reg_dt >= to_date('20000101', 'yyyymmdd')
+when not matched then insert
+  (cust_id, cust_nm, email, tel_no, region, addr, reg_dt) values
+  (s.cust_id, s.cust_nm, s.email, s.tel_no, s.region, s.addr, s.reg_dt)
+  where reg_dt < trunc(sysdate);
+```
+
+#### DELETE Clause
+* 이미 저장된 데이터를 조건에 따라 지우는 기능도 제공한다.
+```oracle
+merge into customer t using customer_delta s on (t.cust_id = s.cust_id)
+when matched then update
+  set t.cust_nm = s.cust_nm, t.email = s.email, ...
+  delete where t.withdraw_dt is not null -- 탈퇴일시가 null이 아닌 레코드 삭제
+when not matched then insert
+  (cust_id, cust_nm, email, tel_no, region, addr, reg_dt) values
+  (s.cust_id, s.cust_nm, s.email, s.tel_no, s.region, s.addr, s.reg_dt);
+```
+* 위 예시에서 기억해야할 부분은, UPDATE가 이루어진 결과로 탈퇴일시가 Null이 아닌 레코드만 삭제한다.
+  * 따라서, 탈퇴일시가 Null이 아니었어도 MERGE문을 수행한 결과가 Null이면 삭제하지 않는다.
+* MERGE 문 DELETE절은 조인에 성공한 데이터만 삭제할 수 있다.
+  * Source 테이블에서 삭제된 데이터는 Target 데이터에서도 지우고 싶을 때, MERGE 문 DELETE절이 그 역할까진 할 수 없다.
+  * 즉, 조인에 실패한 데이터는 UPDATE도 할 수 없고 DELETE도 할 수 없다.
+
+#### Merge Into 활용 예
+* 저장하려는 레코드가 기존에 있던 것이면 UPDATE를 수행하고, 그렇지 않으면 INSERT를 하려고 한다.
+* 이럴 때 MERGE 문을 활용하면 SQL을 한번만 수행하도록 할 수 있다.
+
+> 수정가능 조인 뷰 vs MERGE 문
+> * UPDATE 대신 MERGE 문을 사용하는 개발자가 늘고 있다.
+> * 실행계획만 같다면 UPDATE문을 사용하던 MERGE문을 사용하던 상관은 없다.
+> * 하지만 아래와 같은 케이스는 문제가 된다.
+> ```oracle
+> MERGE INTO EMP T2
+> USING (SELECT T.ROWID AS RID, S.ENAME
+>        FROM EMP T, EMP_SRC S
+>        WHERE T.EMPNO = S.EMPNO
+>          AND T2.ENAME <> S.ENAME) S
+> ON (T2.ROWID = S.RID)
+> WHEN MATCHED THEN UPDATE SET T2.ENAME = S.ENAME; 
+> ```
+> * 위 패턴은 UPDATE 대상 테이블인 EMP를 두 번 액세스 하기 때문에 성능에 좋지 않다.
+> ```oracle
+> MERGE INTO EMP T
+> USING EMP_SRC S
+> ON (T.EMPNO = S.EMPNO)
+> WHEN MATCHED THEN UPDATE SET T.ENAME = S.ENAME
+> WHERE T.ENAME <> S.ENAME; 
+> ```
+> * 위와같이 작성하는게 좋고, 차라리 아래와 같이 수정가능 조인 뷰를 이용한 UPDATE 문을 사용하는게 편할 수 있다.
+> ```oracle
+> UPDATE (
+>   SELECT S.ENAME AS S_ENAME, T.ENAME AS T_ENAME
+>   FROM EMP T, EMP_SRC S
+>   WHERE T.EMPNO = S.EMPNO
+>     AND T.ENAME <> S.ENAME
+> )
+> SET T_ENAME = S_ENAME
+> ```
+> * 물론 EMP_SRC 테이블 EMPNO 컬럼에 Unique 인덱스가 생성되어있어야 한다.
+
+## Direct Path I/O 활용
+* OLTP 시스템에선 버퍼캐시가 성능 향상에 도움을 준다.
+* 하지만 정보계 시스템(DW/OLAP 등)이나 배치 프로그램에서 사용하는 SQL은 주로 대량 데이터를 처리하기 때문에 버퍼캐시를 경유하는 I/O 메커니즘이 오히려 성능을 떨어뜨릴 수 있다.
+* 그래서 오라클은 버퍼캐시를 경유하지 않고 바로 데이터블록을 읽고 쓸 수 있는 Direct Path I/O 기능을 제공한다.
+
+### Direct Path I/O
+* 일반적으로 블록 I/O는 DB 버퍼캐시를 경유한다.
+  * 읽고자 하는 블록을 먼저 버퍼캐시에서 찾아보고, 찾지 못할 때만 디스크에서 읽는다.
+  * 데이터를 변경할 때도 먼저 블록을 버퍼캐시에서 찾는다.
+  * 찾은 버퍼블록에 변경을 가하고 나면, DBWR 프로세스가 변경된 블록들을 주기적으로 찾아 데이터파일에 반영해준다.
+* 자주 읽는 블록에 대한 반복저인 I/O Call을 줄임으로써 시스템 전반적인 성능을 높이려고 버퍼캐시를 이용하지만, 대량 데이터를 읽고 쓸 때 건건이 버퍼캐시를 탐색한다면 성능에는 오히려 안좋다.
+  * 버퍼캐시에서 블록을 찾을 가능성이 거의 없기 때문이다.
+  * 대량 블록을 건건이 디스크로부터 버퍼캐시에 적재하고서 읽어야 하는 부담도 크다.
+  * Full Scan 의주로 가끔 수행되는 대용량 처리 프로그램이 읽어들인 데이터는 대개 재사용성이 낮다.
+* 이러한 데이터 블록들이 버퍼캐시를 점유한다면 다른 프로그램 성능에도 나쁜 영향을 미친다.
+* 그래서 오라클은 버퍼캐시를 경유하지 않고 곧바로 데이터 블록을 읽고 쓸 수 있는 Direct Path I/O 기능을 제공한다.
+  * 병령 쿼리로 Full Scan을 수행할 때 (중요)
+  * 병렬 DML을 수행할 때 (중요)
+  * Direct Path Insert를 수행할 때 (중요)
+  * Temp 세그먼트 블록들을 읽고 쓸 때
+  * direct 옵션을 지정하고 export를 수행할 때
+  * nocache 옵션을 지정한 LOB 컬럼을 읽을 때
+
+> 병렬쿼리
+> * 쿼리문에 `parallel` 또는 `parallel_index` 힌트를 사용하면 지정한 병렬도 만큼 병렬 프로세스가 떠서 동시에 작업을 진행한다.
+> ```oracle
+> select /*+ full(t) parallel(t 4) */ * from big_table t;
+> ```
+> ```oracle
+> select /*+ index_ffs(t big_table_x1) parallel_index(t big_table_x1 4) */ count(*) from big_table t;
+> ```
+> * 위처럼 병렬도를 4로 지정하면 성능이 네 배 빨라지는게 아니라 수십 배 빨라진다.
+> * Direct Path I/O 때문에 나타나는 효과로, 버퍼캐시를 탐색하지 않고 디스크로부터 버퍼캐시에 적재하는 부담도 없으니 빠른 것이다.
+> * Order by, Group By, 해시 조인, 소트 머지 조인 등을 처리할 때는 힌트로 지정한 병렬도보다 두 배 많은 프로세스가 사용된다.
+
+### Direct Path Insert
+* 일반적인 INSERT가 느린 이유는 다음과 같다.
+  * 데이터를 입력할 수 있는 블록을 Freelist에서 찾는다.
+    * Freelist : 테이블 HWM(High-Water-Mark) 아래쪽에 있는 블록 중 데이터 입력이 가능한 블록을 목록으로 관리
+  * Freelist에서 할당받은 블록을 버퍼캐시에서 찾는다.
+  * 버퍼캐시에 없으면, 데이터파일에서 읽어 버퍼캐시에 적재한다.
+  * INSERT 내용을 Undo 세그먼트에 기록한다.
+  * INSERT 내용을 Redo 로그에 기록한다.
+* Direct Path Insert 방식을 사용하면 대량의 데이터를 일반적인 INSERT 보다 훨씬 빠르게 입력할 수 있다.
+* Direct Path Insert 방식으로 입력하는 과정은 아래와 같다.
+  * INSERT ... SELECT 문에 append 힌트 사용
+  * parallel 힌트를 이용해 병렬모드로 INSERT
+  * direct 옵션을 지정하고 SQL Loader(sqlldr)로 데이터 적재
+  * CTAS(create table ... as select) 문 수행
+* Direct Path Insert 방식이 빠른 이유는 다음과 같다.
+  * Freelist를 참조하지 않고 HWM 바깥 영역에 데이터를 순차적으로 입력한다.
+  * 블록을 버퍼캐시에서 탐색하지 않는다.
+  * 버퍼캐시에 적재하지 않고, 데이터파일에 직접 기록한다.
+  * Undo 로깅을 안한다.
+  * Redo 로깅을 안 하게 할 수 있다. (Direct Path Insert가 아닌 일반 Insert 문에 로깅하지 않게 하는 방법은 없음)
+    ```
+    alter table t NOLOGGING
+    ```
+* Array Processing도 Dircet Path Insert 방식으로 처리할 수 있다.
+* `append_values` 힌트를 사용하면 된다.
+  ```oracle
+  ...
+    insert /*+ append_values */ into target values p_source(i);
+  ...
+  ```
+
+#### Direct Path Insert 주의사항
+* 성능은 매우 빨라지지만, Exclusive 모드 TM Lock이 걸린다.
+  * 커밋하기 전까지 다른 트랜잭션은 해당 테이블에 DML을 수행하지 못한다.
+  * 따라서, 트랜잭션이 빈번한 주간에 이 옵션은 절대 사용하면 안된다.
+* Freelist를 조회하지 않고 HWM 바깥 영역에 입력하므로 테이블 여유 공간이 있어도 재활용하지 않는다.
+  * 과거 데이터를 주기적으로 DELETE 해서 여유공간이 생겨도 이 방식으로만 계속 INSERT하는 테이블은 사이즈가 줄지 않고 계속 늘어만 간다.
+  * Range 파티션 테이블이라면 과거 데이터를 DELETE가 아닌 DROP 방식으로 지워야 공간 반환이 제대로 이루어진다.
+  * 비파티션 테이블이라면 주기적으로 Reorg 작업을 수행해 줘야 한다.
+
+### 병렬 DML
+* 병렬 쿼리와 병렬 DDL은 기본적으로 활성화되어 있어 언제든 바로 병렬 처리 가능하다.
+* 하지만 병렬 DML은 기본적으로 비활성화 되어있다.
+* 따라서 DML을 병렬로 처리하려면 아래와 같이 병렬 DML을 활성화해야 한다.
+  ```oracle
+  alter session enable parallel dml;
+  ```
+* 그리고 `parallel` 힌트를 사용하면, 대상 레코드를 찾는 작업(INSERT는 SELECT 쿼리, UPDATE/DELETE는 조건절 검색)은 물론 데이터 추가/변경/삭제도 병렬로 진행한다.
+```oracle
+insert /*+ parallel(c 4) */ into 고객 c
+select /*+ full(o) parallel(o 4) */ * from 외부가입고객 o;
+
+update /*+ full(c) parallel(c 4) */ 고객 c 
+set 고객상태코드 = 'WD'
+where 최종거래일시 < '20100101';
+
+delete /*+ full(c) parallel(c 4) */ from 고객 c
+where 탈퇴일시 < '20100101';
+```
+
+* 힌트를 사용했지만 병렬 DML을 활성화하지 않은 경우 대상 레코드를 찾는 작업은 병렬로 진행하지만, 추가/변경/삭제는 QC(Query Coordinator)가 혼자 담당하기 때문에 병목이 생긴다.
+  * 오라클은 DML 문에 두 단계 전략을 사용하는데, Consistent 모드로 대상 레코드를 찾고 Current 모드로 추가/변경/삭제 한다.
+* 병렬 INSERT는 `append` 힌트를 지정하지 않아도 Direct Path Insert 방식을 사용한다.
+  * 하지만 병렬 DML이 작동하지 않을 경우를 대비해 `append`힌트를 같이 사용하는게 좋다.
+  * QC가 Direct Path Insert를 사용하면 어느 정도 만족할 만한 성능을 낼 수 있기 때문이다.
+* 12c부터는 `enable_parallel_dml` 힌트도 지원한다.
+```oracle
+insert /*+ enable_parallel_dml parallel(c 4) */ into 고객 c
+select /*+ full(o) parallel(o 4) */ * from 외부가입고객 o;
+    
+update /*+ enable_parallel_dml full(c) parallel(c 4) */ 고객 c 
+set 고객상태코드 = 'WD'
+where 최종거래일시 < '20100101';
+```
+* 병렬 DML을 사용하면 테이블에 Exclusive 모드 TM Lock이 걸리기 때문에 트랜잭션이 빈번한 주간에 이 옵션은 절대 사용하면 안된다.
+
+#### 병렬 DML이 잘 작동하는지 확인하는 방법
+* DML 작업을 각 병렬 프로세스가 처리하는지, QC가 처리하는지를 실행계획에서 확인할 수 있다.
+* UPDATE(또는 DELETE/INSERT)가 `PX COORDINAOTR` 아래쪽에 나타나면 UPDATE를 각 병렬 프로세스가 처리한다.
+* 하지만 UPDATE(또는 DELETE/INSERT)가 `PX COORDINAOTR` 위쪽에 나타나면 UPDATE를 QC가 처리한다.
