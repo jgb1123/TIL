@@ -2992,3 +2992,304 @@ where 최종거래일시 < '20100101';
 * DML 작업을 각 병렬 프로세스가 처리하는지, QC가 처리하는지를 실행계획에서 확인할 수 있다.
 * UPDATE(또는 DELETE/INSERT)가 `PX COORDINAOTR` 아래쪽에 나타나면 UPDATE를 각 병렬 프로세스가 처리한다.
 * 하지만 UPDATE(또는 DELETE/INSERT)가 `PX COORDINAOTR` 위쪽에 나타나면 UPDATE를 QC가 처리한다.
+
+## 파티션을 활용한 DML 튜닝
+* 파티션을 이용하면 대량 추가/변경/삭제 작업을 빠르게 처리할 수 있다.
+
+### 테이블 파티션
+* 파티셔닝은 테이블 또는 인덱스 데이터를 특정 컬럼 값에 따라 별도 세그먼트에 나눠서 저장하는 것을 말한다.
+* 파티션이 필요한 이유를 관리적 측면과 성능적 측면으로 요약하면 아래와 같다.
+  * 관리적 측면 : 파티션 단위 백업, 추가, 삭제, 변경 -> 가용성 향상
+  * 성능적 측면 : 파티션 단위 조회 및 DML, 경합 또는 부하 분산
+* 파티션에는 Range, 해시, 리스트 세 종류가 있다.
+
+#### Range 파티션
+* Range 파티션은 오라클 8 버전부터 제공된 가장 기초적인 방식으로 주로 날짜 컬럼을 기준으로 파티셔닝한다.
+
+```oracle
+create table 주문 ( 주문번호 number, 주문일자 varchar2(8), 고객ID varchar2(5)
+                  , 배송일자 varchar2(8), 주문금액 number, ... )
+partition by range(주문일자) (
+  partition P2017_Q1 values less than ('20170401')
+, partition P2017_Q2 values less than ('20170701')
+, partition P2017_Q3 values less than ('20171001')
+, partition P2017_Q4 values less than ('20180101')
+, partition P2018_Q1 values less than ('20180401')
+, partition P9999_MX values less than (MAXVALUE)
+);
+```
+* 위와 같은 파티션 테이블에 값을 입력하면, 각 레코드를 파티션 키 값에 따라 분할 저장하고, 읽을 때에도 검색 조건을 만족하는 파티션만 골라서 읽을 수 있어 이력성 데이터를 Full Scan 방식으로 조회할 때 성능을 크게 향상한다.
+* 보관주기 정책에 따라 과거 데이터가 저장된 파티션 백업하고 삭제하는 등 데이터 관리 작업을 효율적이고 빠르게 수행할 수 있는 장점도 있다.
+* 파티션 테이블에 대한 SQL 성능 향상 원리는 파티션 Pruning(=Elimination)에 있다. (prune : 쓸데없는 가지를 치다, 불필요한 부분을 제거하다.)
+* 파티션 Pruning은 SQL 하드파싱이나 실행시점에 조건절을 분석해서 읽지 않아도 되는 파티션 세그먼트를 액세스 대상에서 제외하는 기능이다.
+* 대량의 테이블을 조회할 때, 파티션과 병렬처리가 만나면 그 효과는 배가 된다.
+* 파티션도 클러스터, IOT와 마찬가지로 관련 있는 데이터가 흩어지지 않고 물리적으로 인접하도록 저장하는 클러스터링 기술에 속한다.
+  * 클러스터와 다른 점은 세그먼트 단위로 모아서 저장한다는 점이다.
+  * 클러스터는 데이터를 블록 단위로 모아 저장한다.
+  * IOT는 데이터를 정렬된 순서로 저장하는 구조이다.
+    
+#### 해시 파티션
+* 해시 파티션은 오라클 8i부터 제공하기 시작했다.
+* 파티션 키 값을 해시 함수에 입력해 반환받은 값이 같은 데이터를 같은 세그먼트에 저장하는 방법이다.
+* 파티션 개수만 사용자가 결정하며, 데이터를 분산하는 알고리즘은 오라클 내부 해시함수가 결정한다.
+* 해시 파티션은 고객ID처럼 변별력이 좋고 데이터 분포가 고른 컬럼을 파티션 기준으로 선정해야 효과적이다.
+```oracle
+create table 고객 ( 고객ID varchar2(5), 고객명 varchar2(10), ... )
+partition by hash(고객ID) partitions 4;
+```
+* 검색할 때는 조건절 비교 값에 똑같은 해시 함수를 적용함으로써 읽을 파티션을 결정한다.
+* 해시 알고리즘 특성 상 등치조건 또는 IN-List 조건으로 검색할 때만 파티션 Pruning이 작동한다.
+
+#### 리스트 파티션
+* 리스트 파티션은 오라클 9i부터 제공하기 시작했다.
+* 사용자가 정의한 그룹핑 기준에 따라 데이터를 분할 저장하는 방식이다.
+```oracle
+create table 인터넷매물 ( 물건코드 varchar2(5), 지역분류 varchar2(4), ... )
+partition by by list(지역분류) (
+  partition P_지역1 values ('서울')
+, partition P_지역2 values ('경기', '인천')
+, partition P_지역3 values ('부산', '대구', '대전', '광주')
+, partition P_기타 values (DEFAULT)
+);
+```
+* Range 파티션에서는 값의 순서에 따라 저장할 파티션이 결정되지만, 리스트 파티션에서는 순서와 상관업시 불연속적인 값의 목록에 의해 결정된다.
+* 해시 파티션은 오라클이 정한 해시 알고리즘에 따라 임의로 분할하지만, 리스트 파티션은 사용자가 정의한 논리적인 그룹에 따라 분할한다.
+* 업무적인 친화도에 따라 그룹핑 기준을 정하되, 될 수 있으면 각 파티션에 값이 고르게 분산되도록 해야 한다.
+
+### 파티션 인덱스
+* 파티션 테이블은 아래와 같이 구분된다.
+  * 비파티션 테이블
+  * 파티션 테이블
+* 파티션 인덱스는 아래와 같이 구분되는데, 각 파티션이 커버하는 커버하는 테이블 파티션 범위에 따라 로컬과 글로벌로 나뉜다.
+  * 비파티션 인덱스
+  * 파티션 인덱스
+    * 로컬 파티션 인덱스
+    * 글로벌 파티션 인덱스
+* 로컬 파티션 인덱스는 각 테이블 파티션과 인덱스 파티션이 서로 1:1 대응관계가 되도록 오라클이 자동으로 관리하는 파티션 인덱스를 말한다.
+* 로컬이 아닌 파티션 인덱스는 모두 글로벌 파티션 인덱스이며, 테이블 파티션과 독립적인 구성을 갖는다.
+  * 비파티션 테이블에 생성 불가
+
+
+#### 로컬 파티션 인덱스
+* 파티션 테이블에 로컬 파티션 인덱스를 추가하는 방법은, `CREATE INDEX` 문 뒤에 `LOCAL` 옵션을 추가하면 된다.
+```oracle
+create index 주문_x01 on 주문 ( 주문일자, 주문금액 ) LOCAL;
+create index 주문_x02 on 주문 ( 고객ID, 주문일자 ) LOCAL;
+```
+* 각 로컬 인덱스 파티션은 테이블 파티션 속성을 그대로 상속받는다.
+* 테이블 파티션 키가 주문일자이면, 로컬 인덱스 파티션 키도 주문일자가 된다.
+* 로컬 파티션 인덱스를 로컬 인덱스라고 줄여서 부르기도 한다.
+* 로컬 파티션 인덱스는 테이블과 정확히 1:1 대응 관계를 갖도록 오라클이 파티션을 자동으로 관리해준다.
+* 파티션 테이블의 파티션 구성을 변경(add, drop, exchange 등)하더라도 인덱스를 재생성할 필요가 없다.
+* 변경작업이 순식간에 끝나기 때문에, 피크 시간대만 피하면 서비스를 중단하지 않고도 작업할 수 있다.
+
+#### 글로벌 파티션 인덱스
+* 글로벌 파티션 인덱스는 파티션을 테이블과 다르게 구성한 인덱스이다.
+  * 파티션 유형이 다르거나, 파티션 키가 다르거나, 파티션 기준값 정의가 다른 경우
+* 비파티션 테이블이어도 인덱스는 파티셔닝할 수 있다.
+```oracle
+create index 주문_x03 on 주문( 주문금액, 주문일자 ) GLOBAL
+partition by range(주문금액) (
+  partition P_01 values less than ( 10000 )
+, partition P_MX values less than ( MAXVALUE )   
+);
+```
+* 글로벌 파티션 인덱스는 테이블 파티션 구성을 변경하는 순간 Unusable 상태로 바뀌기 때문에 인덱스를 바로 재생성해줘야 한다.
+* 그동안 해당 테이블을 사용하는 서비스를 중단해야 한다.
+
+#### 비파티션 인덱스
+* 비파티션 인덱스는 말 그대로 파티셔닝하지 않은 인덱스다.
+* 비파티션 인덱스는 여러 테이블 파티션을 가리키기 때문에, 글로벌 비파티션 인덱스라고 부르기도 한다.
+* 비파티션 인덱스는 테이블 파티션 구성을 변경하는 순간 Unusable 상태로 바뀌므로 곧바로 인덱스를 재생성해줘야 한다.
+* 그동안 해당 테이블을 사용하는 서비스를 중단해야 한다.
+
+#### Prefixed vs Nonprefixed
+* 파티션 인덱스를 Prefixed와 Nonprefixed로 나눌 수 있다.
+  * Prefixed : 인덱스 파티션 키 컬럼이 인덱스 키 컬럼 왼쪽 선두에 있다.
+  * Nonprefixed : 인덱스 파티션 키 컬럼이 인덱스 키 컬럼 왼쪽 선두에 위치하지 않는다. (아예 속하지 않는 경우도 포함)
+* 인덱스 파티션 키 컬럼이 인덱스 구성상 왼쪽 선두 컬럼에 위치하는지에 따른 구분이다.
+* 글로벌 파티션은 Nonprefixed를 사용할 수 없다.
+* 글로벌 파티션 인덱스는 Prefixed 파티션만 지원되므로, 비파티션 인덱스를 포함해 아래 4가지 유형으로 정리된다.
+  * 로컬 Prefixed 파티션 인덱스
+  * 로컬 Nonprefixed 파티션 인덱스
+  * 글로벌 Prefixed 파티션 인덱스
+  * 비파티션 인덱스
+
+#### 중요한 인덱스 파티션 제약
+* **Unique 인덱스를 파티셔닝하려면, 파티션 키가 모두 인덱스 구성 컬럼이어야 한다.**
+  * 이 조건은 DML 성능 보장을 위해 당연히 있어야 할 제약조건이다.
+  * 파티션 키 조건 없이 PK 인덱스로 액세스하는 수많은 쿼리 성능을 위해서도 필요하다.
+* 이 제약으로 인해 PK 인덱스를 로컬 파티셔닝하지 못하면 파티션 Drp, Truncate, Exchange, Split, Merge 같은 파티션 구조 변경 작업도 쉽지 않다.
+  * 이 작업을 하는 순간 PK 인덱스가 Unusable 상태로 바뀌기 때문이다.
+  * 곧바로 Rebuild를 하면 되지만 그동안 해당 테이블을 사용하는 서비스를 중단해야 한다.
+* 따라서 **서비스 중단 없이 파티션 구조를 빠르게 변경하려면, PK를 포함한 모든 인덱스가 로컬 파티션 인덱스이어야 한다.**
+* 파티션을 활용한 대량 UPDATE/DELETE/INSERT는 파티션 구조 변경 작업을 수반하며 ILM(Information Lifecycle Management)을 지원하는 아주 중요한 기능이다.
+  * 이 기능을 활용해 ILM 관리체계를 효과적으로 운영하려면 가급적 인덱스를 로컬 파티션으로 구성해야 하며, 설계할 때부터 PK를 잘 구성해 줘야 한다.
+  * 즉, 대량으로 데이터를 추가/변경/삭제하는 기준 컬럼을 PK에 포함하려고 노력해야 한다.
+
+### 파티션을 활용한 대량 UPDATE 튜닝
+* 대량 데이터를 입력/수정/삭제할 때는 인덱스를 Drop 하거나 Unusable 상태로 변경하고 작업하는 방법을 많이 활용한다.
+* 이 방법의 손익 분기점은 약 5% 정도(테이블이 클수록 더 낮아짐)로 , 데이터 비중이 5%를 넘는다면 이 방식이 더 빠르다는 의미이다.
+* 하지만 이 방법도, 초대용량 테이블일 경우엔 인덱스를 재생성하는 부담도 커서 쉽지 않다.
+
+#### 파티션 Exchange를 이용한 대량 데이터 변경
+* 테이블이 파티셔닝 되어 있고,인덱스도 로컬 파티션이라면 좋은 방법이 생긴다.
+* 수정된 값을 갖는 임시 세그먼트를 만들어 원본 파티션과 바꿔치기하는 방식이다.
+
+1. 임시테이블을 생성한다. 할 수 있다면 nologging 모드로 생성한다.
+```oracle
+create table 거래_t
+nologging
+as
+select * from 거래 where 1 = 2;
+```
+2. 데이터를 읽어 임시 테이블에 입력하면서 상태코드 값을 수정한다.
+```oracle
+insert /*+ append */ into 거래_t
+select 고객번호, 거래일자, 거래순번, ...
+     , (case when 상태코드 <> 'ZZZ' then 'ZZZ' else 상태코드 end) 상태코드
+from 거래
+where 거래일자 < '20250101';
+```
+3. 임시 테이블에 원본 테이블과 같은 구조로 인덱스를 생성한다. 할 수 있다면 nologging 모드로 생성한다.
+```oracle
+create unique index 거래_t_pk on 거래_t(고객번호, 거래일자, 거래순번) nologging;
+create index 거래_t_x1 on 거래_t(거래일자, 고객번호) nologging;
+create index 거래_t_x2 on 거래_t(상태코드, 거래일자) nologging;
+```
+4. 특정 파티션과 임시 테이블을 Exchange 한다.
+```oracle
+alter table 거래
+exchange partition p202412 with table 거래_t
+including indexes without validation;
+```
+5. 임시 테이블을 Drop 한다.
+```oracle
+drop table 거래_t;
+```
+6. nologging 모드로 작업했다면, 파티션을 logging 모드로 전환한다.
+```oracle
+alter table 거래 modify partition p202412 logging;
+alter index 거래_pk modify partition p201412 logging;
+alter index 거래_x1 modify partition p201412 logging;
+alter index 거래_x2 modify partition p201412 logging;
+```
+
+### 파티션을 활용한 대량 DELETE 튜닝
+* 아래와 같은 조건절로 수천만 건 데이터를 삭제할 때도, 인덱스를 실시간으로 관리하려면 엄청난 시간이 소요된다.
+* 그렇다고 초대용량 테이블 인덱스를 모두 Drop 했다가 다시 생성하는것도 쉽지 않다.
+> DELETE가 느린 이유
+> 1. 테이블 레코드 삭제
+> 2. 테이블 레코드 삭제에 대한 Undo Logging
+> 3. 테이블 레코드 삭제에 대한 Redo Logging
+> 4. 인덱스 레코드 삭제
+> 5. 인덱스 레코드 삭제에 대한 Undo Logging
+> 6. 인덱스 레코드 삭제에 대한 Redo Logging
+> 7. Undo(2, 5번)에 대한 Redo Logging
+
+#### 파티션 Drop을 이용한 대량 데이터 삭제
+* 테이블이 삭제 조건절 컬럼 기준으로 파티셔닝 되어 있고, 인덱스도 로컬 파티션이라면 아래와 같이 대량 데이터를 순식간에 삭제할 수 있다.
+```oracle
+alter table 거래 drop partition p202412;
+```
+* 오라클 11g부터 아래와 같이 대상 파티션을 지정할 수도 있다.
+```oracle
+alter table 거래 drop partition for('20241201');
+```
+
+#### 파티션 Truncate를 이용한 대량 데이터 삭제
+* 거래일자 조건에 해당하는 데이터를 삭제하지 않고 또 다른 삭제 조건이 있는 경우가 있다.
+```oracle
+delete from 거래
+where 거래일자 < '20250101'
+  and (상태코드 <> 'ZZZ' or 상태코드 is null);
+```
+* 해당 조건을 만족하는 데이터가 대대수라면, 대량 데이터를 지울게 아닌 남길 데이터만 백업하고 재입력하는 방식이 빠르다.
+1. 임시 테이블을 생성하고 남길 데이터만 복제한다.
+```oracle
+create table 거래_t
+as
+select *
+from 거래
+where 거래일자 < '20150101'
+  and 상태코드 = 'ZZZ'
+```
+2. 삭제 대상 테이블 파티션을 Truncate 한다.
+```oracle
+alter table 거래 truncate partition p201412;
+```
+```oracle
+alter table 거래 truncate partition for ('20141201');
+```
+3. 임시 테이블에 복제해 둔 데이터를 원본 테이블에 입력한다.
+```oracle
+insert into 거래
+select * from 거래_t;
+```
+4. 임시 테이블을 Drop한다.
+```oracle
+drop table 거래_t;
+```
+
+* 서비스 중단 없이 파티션을 Drop 또는 Truncate 하려면 아래 조건을 모두 만족해야 한다.
+  * 파티션 키와 커팅 기준 컬럼이 일치해야 함
+    * ex) 파티션 키와 커팅 기준 컬럼이 모두 `신청일자`
+  * 파티션 단위와 커팅 주기가 일치해야 함
+    * ex) 월 단위 파티션을 월 주기로 커팅
+  * 모든 인덱스가 로컬 파티션 인덱스이어야 함
+    * ex) 파티션 키는 `신청일자`, PK는 `신청일자 + 신청순번`
+    * PK 인덱스는 삭제기준 컬럼이 인덱스 구성 컬럼이어야 로컬 파티셔닝이 가능하다.
+
+### 파티션을 활용한 대량 INSERT 튜닝
+#### 비파티션 테이블일 때
+* 비파티션 테이블에 손익분기점을 넘는 대량 데이터를 INSERT 하려면 인덱스를 Unusable 시켰다가 재생성하는 방식이 더 빠를 수 있다.
+1. 테이블을 nologging 모드로 전환한다.
+```oracle
+alter table target_t nologging; 
+```
+2. 인덱스를 Unusable 상태로 전환한다.
+```oracle
+alter index target_t_x01 unusable; 
+```
+3. 가능하다면 Direct Path Insert 방식으로 대량 데이터를 입력한다.
+```oracle
+insert /*+ append */ into target_t
+select * from source_t
+```
+4. nologging 모드로 인덱스를 재생성한다.
+```oracle
+alter index target_t_x01 rebuild nologging; 
+```
+5. logging 모드로 전환한다.
+```oracle
+alter table target_t logging;
+alter table target_t_x01 logging;
+```
+
+#### 파티션 테이블일 때
+* 초대용량 인덱스를 재생성하는 부담이 만만치 않기 때문에, 시간이 더 오래 걸리더라도 실무에서는 웬만하면 인덱스를 그대로 둔 상태로 INSERT 한다.
+* 이 경우 테이블이 파티셔닝되어있고, 인덱스도 다행이 로컬 파티션이라면 고민이 해결된다.
+  * 파티션 단위로 인덱스를 재생성할 수 있기 때문이다.
+
+1. 작업 대상 테이블 파티션을 nologging 모드로 전환한다.
+```oracle
+alter table target_t modify partition p_201712 nologging;
+```
+2. 작업대상 테이블 파티션과 매칭되는 인덱스 파티션을 Unusable 상태로 전환한다.
+```oracle
+alter index target_t_x01 modify partition p_201712 unusable;
+```
+3. 가능하다면 Direct Path Insert 방식으로 대량 데이터를 입력한다.
+```oracle
+insert /*+ append */ into target_t
+select * from source_t where dt between '20171201' and '20171231'
+```
+4. nologging 모드로 인덱스 파티션을 재생성한다.
+```oracle
+alter index target_t_x01 rebuild partition p_201712 nologging;
+```
+5. 작업 파티션을 logging 모드로 전환한다.
+```oracle
+alter table target_t modify partition p_201712 logging;
+alter table target_t_x01 modify partition p_201712 logging;
+```
