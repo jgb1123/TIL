@@ -2995,23 +2995,21 @@ when not matched then
 
 ## Direct Path I/O 활용
 * OLTP 시스템에선 버퍼캐시가 성능 향상에 도움을 준다.
-* 하지만 정보계 시스템(DW/OLAP 등)이나 배치 프로그램에서 사용하는 SQL은 주로 대량 데이터를 처리하기 때문에 버퍼캐시를 경유하는 I/O 메커니즘이 오히려 성능을 떨어뜨릴 수 있다.
-* 그래서 오라클은 버퍼캐시를 경유하지 않고 바로 데이터블록을 읽고 쓸 수 있는 Direct Path I/O 기능을 제공한다.
+* 정보계 시스템(DW/OLAP 등)이나 배치 프로그램에서 사용하는 SQL은 **주로 대량 데이터를 처리**하기 때문에 **버퍼캐시를 경유하는 I/O 메커니즘이 오히려 성능을 떨어뜨릴 수 있다.**
 
 ### Direct Path I/O
-* 일반적으로 블록 I/O는 DB 버퍼캐시를 경유한다.
+* **일반적으로 블록 I/O는 DB 버퍼캐시를 경유**한다.
   * 읽고자 하는 블록을 먼저 버퍼캐시에서 찾아보고, 찾지 못할 때만 디스크에서 읽는다.
   * 데이터를 변경할 때도 먼저 블록을 버퍼캐시에서 찾는다.
-  * 찾은 버퍼블록에 변경을 가하고 나면, DBWR 프로세스가 변경된 블록들을 주기적으로 찾아 데이터파일에 반영해준다.
-* 자주 읽는 블록에 대한 반복저인 I/O Call을 줄임으로써 시스템 전반적인 성능을 높이려고 버퍼캐시를 이용하지만, 대량 데이터를 읽고 쓸 때 건건이 버퍼캐시를 탐색한다면 성능에는 오히려 안좋다.
-  * 버퍼캐시에서 블록을 찾을 가능성이 거의 없기 때문이다.
-  * 대량 블록을 건건이 디스크로부터 버퍼캐시에 적재하고서 읽어야 하는 부담도 크다.
-  * Full Scan 의주로 가끔 수행되는 대용량 처리 프로그램이 읽어들인 데이터는 대개 재사용성이 낮다.
+    * 찾은 버퍼블록에 변경을 가하고 나면, DBWR 프로세스가 변경된 블록들을 주기적으로 찾아 데이터파일에 반영해준다.
+* 자주 읽는 블록에 대한 반복적인 I/O Call을 줄임으로써 시스템 전반적인 성능을 높이려고 버퍼캐시를 이용하지만, **대량 데이터를 읽고 쓸 때 건건이 버퍼캐시를 탐색한다면 성능에는 오히려 안좋다.**
+  * Full Scan 의주로 가끔 수행되는 **대용량 처리 프로그램이 읽어들인 데이터는 대개 재사용성이 낮다.**
+  * 대량 블록을 건건이 디스크로부터 버퍼캐시에 **적재하고서 읽어야 하는 부담도 크다.**
 * 이러한 데이터 블록들이 버퍼캐시를 점유한다면 다른 프로그램 성능에도 나쁜 영향을 미친다.
-* 그래서 오라클은 버퍼캐시를 경유하지 않고 곧바로 데이터 블록을 읽고 쓸 수 있는 Direct Path I/O 기능을 제공한다.
-  * 병령 쿼리로 Full Scan을 수행할 때 (중요)
-  * 병렬 DML을 수행할 때 (중요)
-  * Direct Path Insert를 수행할 때 (중요)
+* 그래서 오라클은 **버퍼캐시를 경유하지 않고 곧바로 데이터 블록을 읽고 쓸 수 있는 Direct Path I/O 기능을 제공**한다.
+  * **병령로 Full Scan을 수행할 때**
+  * **병렬 DML을 수행할 때**
+  * **Direct Path Insert를 수행할 때**
   * Temp 세그먼트 블록들을 읽고 쓸 때
   * direct 옵션을 지정하고 export를 수행할 때
   * nocache 옵션을 지정한 LOB 컬럼을 읽을 때
@@ -3019,109 +3017,105 @@ when not matched then
 > 병렬쿼리
 > * 쿼리문에 `parallel` 또는 `parallel_index` 힌트를 사용하면 지정한 병렬도 만큼 병렬 프로세스가 떠서 동시에 작업을 진행한다.
 > ```oracle
-> select /*+ full(t) parallel(t 4) */ * from big_table t;
+> select /*+ full(t) parallel(t 4) */ * 
+> from big_table t;
 > ```
 > ```oracle
-> select /*+ index_ffs(t big_table_x1) parallel_index(t big_table_x1 4) */ count(*) from big_table t;
+> select /*+ index_ffs(t big_table_x1) parallel_index(t big_table_x1 4) */ count(*) 
+> from big_table t;
 > ```
-> * 위처럼 병렬도를 4로 지정하면 성능이 네 배 빨라지는게 아니라 수십 배 빨라진다.
-> * Direct Path I/O 때문에 나타나는 효과로, 버퍼캐시를 탐색하지 않고 디스크로부터 버퍼캐시에 적재하는 부담도 없으니 빠른 것이다.
-> * Order by, Group By, 해시 조인, 소트 머지 조인 등을 처리할 때는 힌트로 지정한 병렬도보다 두 배 많은 프로세스가 사용된다.
+> * 위처럼 **병렬도를 4로 지정하면 성능이 4배 빨라지는게 아니라 수십 배 빨라진다.**
+> * **Direct Path I/O 때문에 나타나는 효과**로, 버퍼캐시를 탐색하지 않고 디스크로부터 버퍼캐시에 적재하는 부담도 없으니 빠른 것이다.
+> * **Order by, Group By, 해시 조인, 소트 머지 조인 등을 처리할 때는 힌트로 지정한 병렬도보다 두 배 많은 프로세스가 사용**된다.
 
 ### Direct Path Insert
-* 일반적인 INSERT가 느린 이유는 다음과 같다.
-  * 데이터를 입력할 수 있는 블록을 Freelist에서 찾는다.
+* **일반적인 INSERT가 느린 이유**는 다음과 같다.
+  * Freelist에서 데이터를 넣을 수 있는 블록을 찾는다.
     * Freelist : 테이블 HWM(High-Water-Mark) 아래쪽에 있는 블록 중 데이터 입력이 가능한 블록을 목록으로 관리
-  * Freelist에서 할당받은 블록을 버퍼캐시에서 찾는다.
-  * 버퍼캐시에 없으면, 데이터파일에서 읽어 버퍼캐시에 적재한다.
+  * Freelist에서 찾은 블록을 버퍼캐시에서 찾거나, 없으면 디스크에서 읽어 캐시에 적재 한다.
   * INSERT 내용을 Undo 세그먼트에 기록한다.
   * INSERT 내용을 Redo 로그에 기록한다.
-* Direct Path Insert 방식을 사용하면 대량의 데이터를 일반적인 INSERT 보다 훨씬 빠르게 입력할 수 있다.
-* Direct Path Insert 방식으로 입력하는 과정은 아래와 같다.
-  * INSERT ... SELECT 문에 append 힌트 사용
-  * parallel 힌트를 이용해 병렬모드로 INSERT
+* **Direct Path Insert 방식이 빠른 이유**는 다음과 같다.
+  * Freelist를 참조하지 않고, HWM 바깥 영역에 데이터를 순차적으로 입력한다.
+  * 블록을 버퍼캐시에서 탐색하지 않으며, 버퍼캐시에도 적재하지 않고 **데이터파일에 직접 기록**한다.
+  * **Undo 로깅을 안한다.**
+    * 필요 시 Redo 로깅을 안 하게 할 수 있다. (Direct Path Insert가 아닌 일반 Insert 문에 로깅하지 않게 하는 방법은 없음)
+      ```
+      alter table t NOLOGGING
+      ```
+* Direct Path Insert 방식으로 동작하는 케이스는 아래와 같다.
+  * INSERT ... SELECT 문에 `append` 힌트 사용
+  * `parallel` 힌트를 이용해 병렬모드로 INSERT
   * direct 옵션을 지정하고 SQL Loader(sqlldr)로 데이터 적재
   * CTAS(create table ... as select) 문 수행
-* Direct Path Insert 방식이 빠른 이유는 다음과 같다.
-  * Freelist를 참조하지 않고 HWM 바깥 영역에 데이터를 순차적으로 입력한다.
-  * 블록을 버퍼캐시에서 탐색하지 않는다.
-  * 버퍼캐시에 적재하지 않고, 데이터파일에 직접 기록한다.
-  * Undo 로깅을 안한다.
-  * Redo 로깅을 안 하게 할 수 있다. (Direct Path Insert가 아닌 일반 Insert 문에 로깅하지 않게 하는 방법은 없음)
-    ```
-    alter table t NOLOGGING
-    ```
+
 * Array Processing도 Dircet Path Insert 방식으로 처리할 수 있다.
-* `append_values` 힌트를 사용하면 된다.
-  ```oracle
-  ...
-    insert /*+ append_values */ into target values p_source(i);
-  ...
-  ```
+  * `append_values` 힌트를 사용하면 된다.
+    ```oracle
+    ...
+      insert /*+ append_values */ into target values p_source(i);
+    ...
+    ```
 
 #### Direct Path Insert 주의사항
-* 성능은 매우 빨라지지만, Exclusive 모드 TM Lock이 걸린다.
-  * 커밋하기 전까지 다른 트랜잭션은 해당 테이블에 DML을 수행하지 못한다.
-  * 따라서, 트랜잭션이 빈번한 주간에 이 옵션은 절대 사용하면 안된다.
-* Freelist를 조회하지 않고 HWM 바깥 영역에 입력하므로 테이블 여유 공간이 있어도 재활용하지 않는다.
-  * 과거 데이터를 주기적으로 DELETE 해서 여유공간이 생겨도 이 방식으로만 계속 INSERT하는 테이블은 사이즈가 줄지 않고 계속 늘어만 간다.
-  * Range 파티션 테이블이라면 과거 데이터를 DELETE가 아닌 DROP 방식으로 지워야 공간 반환이 제대로 이루어진다.
-  * 비파티션 테이블이라면 주기적으로 Reorg 작업을 수행해 줘야 한다.
+* 성능은 매우 빨라지지만, **테이블에는 Exclusive 모드 TM Lock**이 걸린다.
+  * 커밋하기 전까지 **다른 트랜잭션은 해당 테이블에 DML을 수행하지 못한다.**
+  * 따라서, **트랜잭션이 빈번한 주간에 이 옵션은 절대 사용하면 안된다.**
+* Freelist를 조회하지 않고 HWM 바깥 영역에 입력하므로 **테이블 여유 공간이 있어도 재활용하지 않는다.**
+  * **Range 파티션 테이블**이라면 과거 데이터를 DELETE가 아닌 DROP 방식으로 지워야 공간 반환이 제대로 이루어진다.
+  * **비파티션 테이블**이라면 주기적으로 **Reorg(재구성) 작업을 수행해 줘야 한다.**
 
 ### 병렬 DML
-* 병렬 쿼리와 병렬 DDL은 기본적으로 활성화되어 있어 언제든 바로 병렬 처리 가능하다.
-* 하지만 병렬 DML은 기본적으로 비활성화 되어있다.
-* 따라서 DML을 병렬로 처리하려면 아래와 같이 병렬 DML을 활성화해야 한다.
+* **병렬 쿼리와 병렬 DDL은 기본적으로 활성화**되어 있어 언제든 바로 병렬 처리 가능하다.
+* 하지만 **병렬 DML은 기본적으로 비활성화** 되어있다.
+* 따라서 DML을 병렬로 처리하려면 아래와 같이 **병렬 DML을 활성화해야 한다.**
   ```oracle
   alter session enable parallel dml;
   ```
 * 그리고 `parallel` 힌트를 사용하면, 대상 레코드를 찾는 작업(INSERT는 SELECT 쿼리, UPDATE/DELETE는 조건절 검색)은 물론 데이터 추가/변경/삭제도 병렬로 진행한다.
-```oracle
-insert /*+ parallel(c 4) */ into 고객 c
-select /*+ full(o) parallel(o 4) */ * from 외부가입고객 o;
+  ```oracle
+  insert /*+ parallel(c 4) */ into 고객 c
+  select /*+ full(o) parallel(o 4) */ * from 외부가입고객 o;
+  
+  update /*+ full(c) parallel(c 4) */ 고객 c 
+  set 고객상태코드 = 'WD'
+  where 최종거래일시 < '20100101';
+  
+  delete /*+ full(c) parallel(c 4) */ from 고객 c
+  where 탈퇴일시 < '20100101';
+  ```
 
-update /*+ full(c) parallel(c 4) */ 고객 c 
-set 고객상태코드 = 'WD'
-where 최종거래일시 < '20100101';
-
-delete /*+ full(c) parallel(c 4) */ from 고객 c
-where 탈퇴일시 < '20100101';
-```
-
-* 힌트를 사용했지만 병렬 DML을 활성화하지 않은 경우 대상 레코드를 찾는 작업은 병렬로 진행하지만, 추가/변경/삭제는 QC(Query Coordinator)가 혼자 담당하기 때문에 병목이 생긴다.
+* **힌트를 사용했지만 병렬 DML을 활성화하지 않은 경우** 대상 레코드를 **찾는 작업은 병렬로 진행**하지만, **추가/변경/삭제는 QC(Query Coordinator)가 혼자 담당**하기 때문에 병목이 생긴다.
   * 오라클은 DML 문에 두 단계 전략을 사용하는데, Consistent 모드로 대상 레코드를 찾고 Current 모드로 추가/변경/삭제 한다.
-* 병렬 INSERT는 `append` 힌트를 지정하지 않아도 Direct Path Insert 방식을 사용한다.
-  * 하지만 병렬 DML이 작동하지 않을 경우를 대비해 `append`힌트를 같이 사용하는게 좋다.
-  * QC가 Direct Path Insert를 사용하면 어느 정도 만족할 만한 성능을 낼 수 있기 때문이다.
+* **병렬 INSERT는 `append` 힌트를 지정하지 않아도 Direct Path Insert 방식을 사용**한다.
+  * 하지만 병렬 INSERT에도 **`append`힌트를 같이 사용하는게 좋다.**
+  * **벙렬 DML이 동작하지 않는 상황에서도 QC가 Direct Path Insert를 사용**할 수 있어 어느 정도 성능을 확보할 수 있다.
 * 12c부터는 `enable_parallel_dml` 힌트도 지원한다.
-```oracle
-insert /*+ enable_parallel_dml parallel(c 4) */ into 고객 c
-select /*+ full(o) parallel(o 4) */ * from 외부가입고객 o;
-    
-update /*+ enable_parallel_dml full(c) parallel(c 4) */ 고객 c 
-set 고객상태코드 = 'WD'
-where 최종거래일시 < '20100101';
-```
-* 병렬 DML을 사용하면 테이블에 Exclusive 모드 TM Lock이 걸리기 때문에 트랜잭션이 빈번한 주간에 이 옵션은 절대 사용하면 안된다.
+  ```oracle
+  insert /*+ enable_parallel_dml parallel(c 4) */ into 고객 c
+  select /*+ full(o) parallel(o 4) */ * from 외부가입고객 o;
+      
+  update /*+ enable_parallel_dml full(c) parallel(c 4) */ 고객 c 
+  set 고객상태코드 = 'WD'
+  where 최종거래일시 < '20100101';
+  ```
+* **병렬 DML을 사용하면 테이블에 Exclusive 모드 TM Lock이 걸리기 때문에 트랜잭션이 빈번한 주간에 이 옵션은 절대 사용하면 안된다.**
 
 #### 병렬 DML이 잘 작동하는지 확인하는 방법
 * DML 작업을 각 병렬 프로세스가 처리하는지, QC가 처리하는지를 실행계획에서 확인할 수 있다.
-* UPDATE(또는 DELETE/INSERT)가 `PX COORDINAOTR` 아래쪽에 나타나면 UPDATE를 각 병렬 프로세스가 처리한다.
+* **UPDATE(또는 DELETE/INSERT)가 `PX COORDINAOTR` 아래쪽에 나타나면 UPDATE를 각 병렬 프로세스가 처리**한다.
 * 하지만 UPDATE(또는 DELETE/INSERT)가 `PX COORDINAOTR` 위쪽에 나타나면 UPDATE를 QC가 처리한다.
 
 ## 파티션을 활용한 DML 튜닝
-* 파티션을 이용하면 대량 추가/변경/삭제 작업을 빠르게 처리할 수 있다.
-
 ### 테이블 파티션
-* 파티셔닝은 테이블 또는 인덱스 데이터를 특정 컬럼 값에 따라 별도 세그먼트에 나눠서 저장하는 것을 말한다.
+* 파티셔닝은 **테이블 또는 인덱스 데이터를 특정 컬럼 값에 따라 별도 세그먼트에 나눠서 저장**하는 것을 말한다.
 * 파티션이 필요한 이유를 관리적 측면과 성능적 측면으로 요약하면 아래와 같다.
-  * 관리적 측면 : 파티션 단위 백업, 추가, 삭제, 변경 -> 가용성 향상
-  * 성능적 측면 : 파티션 단위 조회 및 DML, 경합 또는 부하 분산
+  * 관리적 측면 : 파티션 단위 백업/추가/삭제/변경 -> **가용성, 운영 편의성 향상**
+  * 성능적 측면 : 파티션 단위 조회 및 DML -> **I/O범위 축소, 경합 또는 부하 분산**
 * 파티션에는 Range, 해시, 리스트 세 종류가 있다.
 
 #### Range 파티션
-* Range 파티션은 오라클 8 버전부터 제공된 가장 기초적인 방식으로 주로 날짜 컬럼을 기준으로 파티셔닝한다.
-
+* Range 파티션은 오라클 8 버전부터 제공된 가장 기초적인 방식으로 **주로 날짜 컬럼을 기준으로 파티셔닝**한다.
 ```oracle
 create table 주문 ( 주문번호 number, 주문일자 varchar2(8), 고객ID varchar2(5)
                   , 배송일자 varchar2(8), 주문금액 number, ... )
@@ -3134,11 +3128,10 @@ partition by range(주문일자) (
 , partition P9999_MX values less than (MAXVALUE)
 );
 ```
-* 위와 같은 파티션 테이블에 값을 입력하면, 각 레코드를 파티션 키 값에 따라 분할 저장하고, 읽을 때에도 검색 조건을 만족하는 파티션만 골라서 읽을 수 있어 이력성 데이터를 Full Scan 방식으로 조회할 때 성능을 크게 향상한다.
-* 보관주기 정책에 따라 과거 데이터가 저장된 파티션 백업하고 삭제하는 등 데이터 관리 작업을 효율적이고 빠르게 수행할 수 있는 장점도 있다.
-* 파티션 테이블에 대한 SQL 성능 향상 원리는 파티션 Pruning(=Elimination)에 있다. (prune : 쓸데없는 가지를 치다, 불필요한 부분을 제거하다.)
-* 파티션 Pruning은 SQL 하드파싱이나 실행시점에 조건절을 분석해서 읽지 않아도 되는 파티션 세그먼트를 액세스 대상에서 제외하는 기능이다.
-* 대량의 테이블을 조회할 때, 파티션과 병렬처리가 만나면 그 효과는 배가 된다.
+* 각 레코드를 파티션 키 값에 따라 분할 저장하고, 읽을 때에도 검색 조건을 만족하는 파티션만 골라서 읽을 수 있어 **이력성 데이터를 Full Scan 방식으로 조회할 때 성능을 크게 향상**한다.
+* 오래된 파티션만 따로 백업/삭제가 가능하기 때문에 보관주기 정책 적용을 하기 쉽다.
+* 조건절을 분석해 읽지 않아도 되는 파티션 세그먼트를 액세스 대상에서 제외하는 파티션 Pruning이 작동하여 SQL 성능이 향상된다.
+* 파티션과 병렬처리가 만나면 그 효과는 배가 된다.
 * 파티션도 클러스터, IOT와 마찬가지로 관련 있는 데이터가 흩어지지 않고 물리적으로 인접하도록 저장하는 클러스터링 기술에 속한다.
   * 클러스터와 다른 점은 세그먼트 단위로 모아서 저장한다는 점이다.
   * 클러스터는 데이터를 블록 단위로 모아 저장한다.
